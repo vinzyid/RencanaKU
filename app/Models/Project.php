@@ -17,4 +17,9 @@ class Project extends Model
     {
         return $this->hasMany(PrdVersion::class);
     }
+
+    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Message::class);
+    }
 }
