@@ -66,39 +66,80 @@ class LocalPrdEngine
      * Heuristik ambiguitas: cari kata samar / kebutuhan yang belum terukur.
      * Tiap pertanyaan punya `key` stabil agar bisa dideduplikasi terhadap
      * ambiguitas yang sudah pernah dijawab user.
+     *
+     * Pertanyaan ditulis dengan bahasa sehari-hari dan menyertakan pilihan
+     * jawaban siap-klik agar ramah untuk pengguna awam.
      */
     public function detectAmbiguities(string $prompt): array
     {
         $questions = [];
         $text = mb_strtolower($this->stripTags($prompt));
 
-        // key => [pola, pertanyaan]
+        // key => [pola, pertanyaan, opsi jawaban]
         $rules = [
-            'speed' => ['/(cepat|cepat sekali|real-?time|instan)/u', 'Seberapa cepat "cepat" yang dimaksud? Sebutkan target waktu respons konkret (misalnya < 2 detik).'],
-            'scale' => ['/(banyak|banyak pengguna|user banyak|skala besar)/u', 'Berapa perkiraan jumlah pengguna/transaksi yang harus didukung pada fase pertama?'],
-            'usability' => ['/(mudah|sederhana|simple|user ?friendly)/u', 'Apa kriteria "mudah digunakan"? (misal maksimal berapa langkah untuk tugas utama)'],
-            'security' => ['/(aman|keamanan|secure|terlindungi)/u', 'Aspek keamanan apa yang wajib? (enkripsi, 2FA, hak akses per peran)'],
-            'etc' => ['/(dll|dan sebagainya|lainnya|dsb)/u', 'Anda menyebut "dan lainnya" — mohon rincikan fitur yang dimaksud agar tidak ditebak.'],
-            'report' => ['/(laporan|report|dashboard)/u', 'Laporan/dashboard ini menampilkan metrik apa saja dan dalam periode berapa?'],
-            'payment' => ['/(bayar|pembayaran|payment|transaksi)/u', 'Metode pembayaran apa yang perlu didukung dan mata uang apa?'],
-            'roles' => ['/(login|akun|auth)/u', 'Peran pengguna (role) apa saja yang perlu dibedakan saat login?'],
+            'speed' => [
+                '/(cepat|cepat sekali|real-?time|instan)/u',
+                'Saat bilang "cepat", maksudnya seberapa cepat?',
+                ['Langsung muncul (<1 detik)', 'Cukup cepat (<3 detik)', 'Tidak terlalu penting'],
+            ],
+            'scale' => [
+                '/(banyak|banyak pengguna|user banyak|skala besar)/u',
+                'Kira-kira berapa orang yang bakal pakai aplikasi ini?',
+                ['Cuma saya sendiri', 'Sekitar 10-100 orang', 'Ratusan orang atau lebih'],
+            ],
+            'usability' => [
+                '/(mudah|sederhana|simple|user ?friendly)/u',
+                'Menurutmu, aplikasi ini sebaiknya seperti apa buat pengguna?',
+                ['Sangat simpel, sekali klik', 'Cukup mudah dipahami', 'Boleh lengkap fiturnya'],
+            ],
+            'security' => [
+                '/(aman|keamanan|secure|terlindungi)/u',
+                'Seberapa penting keamanan data di aplikasi ini?',
+                ['Biasa saja dulu', 'Penting (password & data aman)', 'Sangat ketat (data sensitif)'],
+            ],
+            'etc' => [
+                '/(dll|dan sebagainya|lainnya|dsb)/u',
+                'Tadi kamu sebut "dan lainnya" — fitur apa lagi yang kamu mau?',
+                ['Belum kepikiran, bebas saja', 'Akan saya tulis di chat', 'Cukup yang sudah ada'],
+            ],
+            'report' => [
+                '/(laporan|report|dashboard)/u',
+                'Di bagian laporan/ringkasan, kamu mau lihat apa?',
+                ['Sekadar total/ringkasan', 'Grafik sederhana', 'Detail lengkap semua data'],
+            ],
+            'payment' => [
+                '/(bayar|pembayaran|payment|transaksi)/u',
+                'Pembayarannya nanti pakai apa?',
+                ['Belum perlu bayar', 'Transfer bank', 'E-wallet (OVO/GoPay/dll)'],
+            ],
+            'roles' => [
+                '/(login|akun|auth)/u',
+                'Siapa saja yang bakal punya akun di aplikasi ini?',
+                ['Cuma saya sendiri', 'Ada admin & pengguna biasa', 'Banyak peran berbeda'],
+            ],
         ];
 
-        foreach ($rules as $key => [$pattern, $question]) {
+        foreach ($rules as $key => [$pattern, $question, $options]) {
             if (preg_match($pattern, $text)) {
-                $questions[] = ['key' => $key, 'question' => $question, 'requirement_ref' => null];
+                $questions[] = [
+                    'key' => $key,
+                    'question' => $question,
+                    'options' => $options,
+                    'requirement_ref' => null,
+                ];
             }
         }
 
         if (empty($questions)) {
             $questions[] = [
                 'key' => 'general',
-                'question' => 'Siapa pengguna utama dan apa satu metrik keberhasilan paling penting untuk fitur ini?',
+                'question' => 'Siapa yang bakal pakai aplikasi ini dan apa hasil paling penting yang kamu harapkan?',
+                'options' => ['Untuk saya sendiri', 'Untuk teman/tim', 'Untuk pelanggan umum'],
                 'requirement_ref' => null,
             ];
         }
 
-        return array_slice($questions, 0, 4);
+        return array_slice($questions, 0, 2);
     }
 
     /**

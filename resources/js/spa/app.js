@@ -131,6 +131,32 @@ function resetProjectState() {
     state.view = 'dashboard';
 }
 
+// ---------------------------------------------------------------------------
+// Toast / Notifikasi ringan
+// ---------------------------------------------------------------------------
+function showToast(message, type = 'info') {
+    const palette = {
+        info: 'bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900',
+        success: 'bg-emerald-600/95 text-white',
+        error: 'bg-rose-600/95 text-white',
+    };
+    const el = document.createElement('div');
+    el.className = `fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] px-5 py-3 rounded-xl shadow-2xl text-xs font-semibold transition-all duration-300 opacity-0 translate-y-3 ${palette[type] || palette.info}`;
+    el.textContent = message;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => {
+        el.classList.remove('opacity-0', 'translate-y-3');
+    });
+    setTimeout(() => {
+        el.classList.add('opacity-0', 'translate-y-3');
+        setTimeout(() => el.remove(), 300);
+    }, 2600);
+}
+
+function comingSoon(label) {
+    showToast(`${label} akan segera hadir. 🚧`, 'info');
+}
+
 function timeAgo(dateString) {
     if (!dateString) return 'Baru saja';
     const date = new Date(dateString);
@@ -285,29 +311,26 @@ function renderLanding(root) {
                 <div class="absolute w-80 h-80 bg-[#5B4DF6]/15 dark:bg-[#5B4DF6]/25 rounded-full blur-3xl -z-10 animate-glow"></div>
 
                 <!-- Main Hero Illustration Canvas -->
-                <div class="relative w-full max-w-lg">
+                <div class="relative w-full max-w-lg px-8 sm:px-10">
                     <div class="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-slate-800 bg-white dark:bg-slate-900">
                         <img src="/images/hero_developer.jpg" alt="Developer RencanaKU" class="w-full h-auto object-cover block">
                     </div>
 
                     <!-- Floating Speech Bubbles -->
-                    <div class="absolute -top-4 right-4 speech-bubble animate-float shadow-xl">
+                    <div class="hidden sm:block absolute -top-4 right-2 speech-bubble animate-float shadow-xl">
                         Bikin aplikasi manajemen tugas..
                     </div>
-                    <div class="absolute top-1/4 -left-6 speech-bubble animate-float shadow-xl" style="animation-delay: -2s;">
+                    <div class="hidden sm:block absolute top-[18%] -left-4 speech-bubble animate-float shadow-xl" style="animation-delay: -2s;">
                         Untuk mahasiswa...
-                    </div>
-                    <div class="absolute top-1/2 -left-4 speech-bubble animate-float shadow-xl" style="animation-delay: -3.5s;">
-                        Bisa kolaborasi juga...
                     </div>
 
                     <!-- Floating Inspiring Quote -->
-                    <div class="absolute bottom-6 right-2 bg-gradient-to-r from-indigo-500/90 to-purple-600/90 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg backdrop-blur-md italic">
+                    <div class="absolute bottom-6 right-4 bg-gradient-to-r from-indigo-500/90 to-purple-600/90 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg backdrop-blur-md italic">
                         "Ide besar, mulai dari sini!"
                     </div>
 
                     <!-- Floating PRD Status Card -->
-                    <div class="absolute -bottom-8 -left-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl w-48 text-left animate-float" style="animation-delay: -1s;">
+                    <div class="hidden sm:block absolute -bottom-10 -left-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl w-48 text-left animate-float" style="animation-delay: -1s;">
                         <div class="flex items-center gap-2 mb-2">
                             <span class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white font-heading">PRD</span>
                         </div>
@@ -397,10 +420,12 @@ function renderLanding(root) {
         render(root);
     };
     root.querySelector('#hero-cta-demo').onclick = () => {
-        // Fast demo login with demo user credentials or open register
-        state.authMode = 'login';
-        state.view = 'auth';
-        render(root);
+        // Arahkan ke bagian fitur (demo interaktif belum tersedia)
+        const target = root.querySelector('#fitur');
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        showToast('Demo interaktif akan segera hadir. 🚧', 'info');
     };
 }
 
@@ -451,7 +476,7 @@ function renderAuth(root) {
                     <div>
                         <div class="flex items-center justify-between mb-1.5">
                             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
-                            ${!isRegister ? '<a href="#" class="text-xs font-semibold text-[#5B4DF6] hover:underline">Lupa password?</a>' : ''}
+                            ${!isRegister ? '<a href="#" id="auth-forgot-pwd" class="text-xs font-semibold text-[#5B4DF6] hover:underline">Lupa password?</a>' : ''}
                         </div>
                         <div class="relative">
                             <input name="password" id="auth-password" type="password" placeholder="Masukkan password" required minlength="8" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4DF6] transition">
@@ -479,10 +504,10 @@ function renderAuth(root) {
 
                 <!-- Social buttons -->
                 <div class="grid grid-cols-2 gap-3">
-                    <button type="button" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
+                    <button type="button" data-oauth="Google" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
                         ${icons.google} Google
                     </button>
-                    <button type="button" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
+                    <button type="button" data-oauth="GitHub" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
                         ${icons.github} GitHub
                     </button>
                 </div>
@@ -541,6 +566,18 @@ function renderAuth(root) {
     };
 
     root.querySelector('#auth-theme-toggle').onclick = () => toggleTheme(root);
+
+    const forgotPwd = root.querySelector('#auth-forgot-pwd');
+    if (forgotPwd) {
+        forgotPwd.onclick = (e) => {
+            e.preventDefault();
+            comingSoon('Fitur lupa password');
+        };
+    }
+
+    root.querySelectorAll('[data-oauth]').forEach(btn => {
+        btn.onclick = () => comingSoon(`Login dengan ${btn.dataset.oauth}`);
+    });
 
     root.querySelector('#auth-switch-mode').onclick = (e) => {
         e.preventDefault();
@@ -631,19 +668,19 @@ async function renderWorkspaceShell(root) {
 
                 <!-- Nav Menu Items -->
                 <nav class="space-y-1">
-                    <a href="#" data-nav="dashboard" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
+                    <a href="#" data-nav="dashboard" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
                         <span class="text-base">📊</span> Dashboard
                     </a>
-                    <a href="#" data-nav="projects" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60 transition">
+                    <a href="#" data-nav="projects" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60 transition">
                         <span class="text-base">📁</span> Proyek Saya
                     </a>
-                    <a href="#" data-nav="templates" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
+                    <a href="#" data-nav="templates" data-soon="Template" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
                         <span class="text-base">📋</span> Template
                     </a>
-                    <a href="#" data-nav="history" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
+                    <a href="#" data-nav="history" data-soon="Riwayat" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
                         <span class="text-base">🕒</span> Riwayat
                     </a>
-                    <a href="#" data-nav="settings" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
+                    <a href="#" data-nav="settings" data-soon="Pengaturan" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
                         <span class="text-base">⚙️</span> Pengaturan
                     </a>
                 </nav>
@@ -660,7 +697,7 @@ async function renderWorkspaceShell(root) {
                     <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mb-3">
                         Buka semua fitur premium dan batas lebih tinggi.
                     </p>
-                    <button class="w-full py-2 bg-[#5B4DF6] hover:bg-[#4E3FE3] text-white text-xs font-bold rounded-xl shadow-sm transition">
+                    <button id="sidebar-upgrade-btn" class="w-full py-2 bg-[#5B4DF6] hover:bg-[#4E3FE3] text-white text-xs font-bold rounded-xl shadow-sm transition">
                         Upgrade
                     </button>
                 </div>
@@ -698,7 +735,7 @@ async function renderWorkspaceShell(root) {
                     <button id="ws-theme-toggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                         ${state.theme === 'dark' ? icons.sun : icons.moon}
                     </button>
-                    <button class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    <button id="ws-notif-btn" class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                         ${icons.bell}
                         <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-[#5B4DF6] rounded-full"></span>
                     </button>
@@ -733,6 +770,12 @@ async function renderWorkspaceShell(root) {
         render(root);
     };
 
+    const upgradeBtn = root.querySelector('#sidebar-upgrade-btn');
+    if (upgradeBtn) upgradeBtn.onclick = () => comingSoon('Upgrade ke Pro Plan');
+
+    const notifBtn = root.querySelector('#ws-notif-btn');
+    if (notifBtn) notifBtn.onclick = () => comingSoon('Pusat notifikasi');
+
     const searchInput = root.querySelector('#search-input');
     if (searchInput) {
         searchInput.oninput = (e) => {
@@ -744,6 +787,19 @@ async function renderWorkspaceShell(root) {
     root.querySelectorAll('[data-nav]').forEach(item => {
         item.onclick = (e) => {
             e.preventDefault();
+            // Item yang belum punya halaman → tampilkan notifikasi
+            if (item.dataset.soon) {
+                comingSoon(item.dataset.soon);
+                return;
+            }
+            // Tandai item aktif
+            root.querySelectorAll('[data-nav]').forEach(nav => {
+                nav.classList.remove('text-[#5B4DF6]', 'font-bold', 'bg-indigo-50', 'dark:bg-indigo-950/60');
+                nav.classList.add('text-slate-600', 'dark:text-slate-400', 'font-semibold');
+            });
+            item.classList.remove('text-slate-600', 'dark:text-slate-400', 'font-semibold');
+            item.classList.add('text-[#5B4DF6]', 'font-bold', 'bg-indigo-50', 'dark:bg-indigo-950/60');
+
             resetProjectState();
             state.view = 'dashboard';
             render(root);
@@ -941,7 +997,7 @@ function renderProjectChatView(root, container) {
             <!-- Bottom Composer -->
             <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
                 <form id="chat-form" class="flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 shadow-sm focus-within:ring-2 focus-within:ring-[#5B4DF6]">
-                    <button type="button" class="p-1">${icons.paperclip}</button>
+                    <button type="button" id="chat-attach-btn" class="p-1">${icons.paperclip}</button>
                     <textarea id="chat-input" rows="1" placeholder="Tulis pesanmu di sini..." class="flex-1 bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none resize-none max-h-32"></textarea>
                     <div class="hidden sm:block text-[11px] text-slate-400 shrink-0 font-medium">Shift + Enter untuk baris baru</div>
                     <button type="submit" id="chat-send" class="w-8 h-8 rounded-full bg-[#5B4DF6] hover:bg-[#4E3FE3] text-white flex items-center justify-center shrink-0 shadow-sm transition">
@@ -1488,9 +1544,19 @@ function mountChatInteractions(root, container) {
 
     container.querySelectorAll('[data-chip]').forEach(chip => {
         chip.onclick = async () => {
+            const label = (chip.dataset.chip || '').toLowerCase();
+            // Chip navigasi → buka dokumen, bukan dikirim sebagai pesan.
+            if (label.includes('dokumen')) {
+                state.view = 'documentation';
+                render(root);
+                return;
+            }
             await handleSendMessage(root, chip.dataset.chip);
         };
     });
+
+    const attachBtn = container.querySelector('#chat-attach-btn');
+    if (attachBtn) attachBtn.onclick = () => comingSoon('Upload lampiran');
 
     setTimeout(scrollToBottom, 50);
 }

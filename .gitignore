@@ -25,3 +25,6 @@ Thumbs.db
 
 # Internal project docs (not exposed)
 PRD-*.md
+
+# Local design reference (not pushed)
+/desain-web/

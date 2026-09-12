@@ -59,10 +59,25 @@ class PrdGenerator
         $prdText = $this->prdToText($prd);
 
         $system = <<<'SYS'
-        Kamu adalah reviewer requirement. Temukan bagian PRD yang masih ambigu/under-specified.
-        Balas HANYA JSON valid: { "ambiguities": [ { "question": string, "requirement_ref": string|null } ] }
-        Maksimal 4 pertanyaan, satu pertanyaan per ambiguitas, Bahasa Indonesia, tidak duplikat.
-        Jika PRD sudah jelas, kembalikan "ambiguities": [].
+        Kamu adalah asisten product manager ramah untuk platform RencanaKU.
+        Penggunamu adalah orang awam yang TIDAK paham istilah teknis.
+
+        Aturan pertanyaan:
+        - Ajukan maksimal 2 pertanyaan yang PALING penting saja.
+        - Gunakan bahasa sehari-hari yang mudah dipahami orang awam (hindari kata seperti "requirement", "KPI", "SLA", "role", "2FA", "endpoint").
+        - Setiap pertanyaan WAJIB menyertakan 2-3 pilihan jawaban siap-klik dalam bentuk singkat, agar pengguna tinggal memilih tanpa harus mengetik panjang.
+        - Jika PRD sudah cukup jelas, kembalikan "ambiguities": [].
+
+        Balas HANYA JSON valid dengan bentuk tepat:
+        {
+          "ambiguities": [
+            {
+              "question": string,
+              "requirement_ref": string|null,
+              "options": string[]
+            }
+          ]
+        }
         SYS;
 
         $user = "[MODE:ambiguity]\n[PROMPT:{$prdText}]";
@@ -156,10 +171,16 @@ class PrdGenerator
                 $question = trim($item);
                 $ref = null;
                 $key = null;
+                $options = [];
             } else {
                 $question = trim((string) ($item['question'] ?? $item['text'] ?? ''));
                 $ref = $item['requirement_ref'] ?? $item['ref'] ?? null;
                 $key = $item['key'] ?? null;
+                $options = array_values(array_filter(array_map(
+                    fn ($opt) => is_string($opt) ? trim($opt) : trim((string) json_encode($opt)),
+                    (array) ($item['options'] ?? [])
+                ), fn ($opt) => $opt !== ''));
+                $options = array_slice($options, 0, 3);
             }
 
             if ($question === '') {
@@ -175,10 +196,10 @@ class PrdGenerator
             }
             $seen[$key] = true;
 
-            $out[] = ['key' => $key, 'question' => $question, 'requirement_ref' => $ref];
+            $out[] = ['key' => $key, 'question' => $question, 'requirement_ref' => $ref, 'options' => $options];
         }
 
-        return array_slice($out, 0, 4);
+        return array_slice($out, 0, 3);
     }
 
     private function normalizeContradictions(array $items): array

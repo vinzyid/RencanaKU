@@ -270,6 +270,8 @@ class ApiController extends Controller
         $this->handleFreeRevision($project, $latest, $content);
     }
 
+    private const MAX_CLARIFICATION_ROUNDS = 2;
+
     private function handleInitialIdea(Project $project, string $content): void
     {
         $prd = $this->generator->generate($content);
@@ -281,33 +283,112 @@ class ApiController extends Controller
 
         $this->refreshFlags($version);
 
-        $ambiguity = $version->ambiguityFlags()->where('is_resolved', false)->first();
+        $questions = $version->ambiguityFlags()->where('is_resolved', false)->get();
+
+        if ($questions->isNotEmpty()) {
+            $project->messages()->create([
+                'sender' => 'ai',
+                'content' => "Draft PRD v{$version->version_number} sudah saya susun. Biar hasilnya pas, saya perlu tahu sedikit lagi:\n\n".$this->formatQuestions($questions),
+                'quick_replies' => $this->flattenOptions($questions),
+                'related_prd_version_id' => $version->id,
+            ]);
+
+            return;
+        }
 
         $project->messages()->create([
             'sender' => 'ai',
-            'content' => $ambiguity
-                ? "Draft PRD v{$version->version_number} sudah saya susun. Sebelum lanjut, ada satu hal yang perlu diperjelas:\n\n".$ambiguity->question
-                : "Draft PRD v{$version->version_number} sudah saya susun dan tidak ada ambiguitas besar. Saya mulai cek kontradiksi.",
-            'quick_replies' => $ambiguity ? null : ['Tinjau kontradiksi'],
+            'content' => "Draft PRD v{$version->version_number} sudah saya susun dan tidak ada pertanyaan tambahan. Saya mulai cek kontradiksi.",
+            'quick_replies' => ['Lihat dokumen lengkap'],
             'related_prd_version_id' => $version->id,
         ]);
     }
 
+    /**
+     * Format daftar pertanyaan klarifikasi jadi satu pesan ringkas
+     * (bukan satu pesan per pertanyaan) beserta pilihan jawaban.
+     */
+    private function formatQuestions(\Illuminate\Support\Collection $questions): string
+    {
+        return $questions->values()->map(function ($flag, $i) {
+            $options = collect($flag->options ?? [])
+                ->map(fn ($opt) => "   • {$opt}")
+                ->implode("\n");
+
+            return ($i + 1).'. '.$flag->question.($options !== '' ? "\n{$options}" : '');
+        })->implode("\n\n");
+    }
+
+    /**
+     * Kumpulkan semua opsi jawaban dari daftar pertanyaan menjadi chip
+     * siap-klik, dibatasi agar tidak membanjiri antarmuka.
+     */
+    private function flattenOptions(\Illuminate\Support\Collection $questions): array
+    {
+        return $questions
+            ->flatMap(fn ($flag) => $flag->options ?? [])
+            ->filter()
+            ->unique()
+            ->take(6)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Menandai seluruh ambiguitas yang belum terjawab sebagai terselesaikan
+     * dengan asumsi wajar, dipakai saat batas putaran klarifikasi tercapai
+     * agar pengguna tidak ditanya tanpa henti.
+     */
+    private function resolveRemainingAmbiguities(PrdVersion $version): void
+    {
+        $version->ambiguityFlags()
+            ->where('is_resolved', false)
+            ->get()
+            ->each(fn ($flag) => $flag->update([
+                'is_resolved' => true,
+                'resolution_answer' => 'Diasumsikan wajar oleh sistem.',
+            ]));
+    }
+
+    /**
+     * Berapa putaran klarifikasi yang sudah dilewati proyek ini.
+     * Dihitung dari jumlah versi yang memiliki flag ambiguitas.
+     */
+    private function clarificationRounds(Project $project): int
+    {
+        return (int) $project->prdVersions()
+            ->whereHas('ambiguityFlags')
+            ->count();
+    }
+
     private function handleAmbiguityAnswer(Project $project, PrdVersion $latest, AmbiguityFlag $flag, string $content): void
     {
-        $flag->update(['is_resolved' => true, 'resolution_answer' => $content]);
+        // Pertanyaan dikirim dalam satu batch, jadi balasan ini menjawab seluruh
+        // pertanyaan yang belum selesai pada versi sebelumnya.
+        $latest->ambiguityFlags()
+            ->where('is_resolved', false)
+            ->update(['is_resolved' => true, 'resolution_answer' => $content]);
 
         $revised = $this->generator->revise($latest->decodedContent(), $content, $flag->question);
         $version = $this->newVersion($project, $revised, $this->generator->provider());
         $this->refreshFlags($version);
 
-        $next = $version->ambiguityFlags()->where('is_resolved', false)->first();
+        $rounds = $this->clarificationRounds($project);
+        $remaining = $version->ambiguityFlags()->where('is_resolved', false)->get();
+
+        // Batas putaran tercapai -> berhenti bertanya, pakai asumsi wajar.
+        if ($remaining->isNotEmpty() && $rounds >= self::MAX_CLARIFICATION_ROUNDS) {
+            $this->resolveRemainingAmbiguities($version);
+            $remaining = collect();
+        }
+
         $contradiction = $version->contradictionFlags()->whereNull('resolution')->first();
 
-        if ($next) {
+        if ($remaining->isNotEmpty()) {
             $project->messages()->create([
                 'sender' => 'ai',
-                'content' => "Terima kasih, sudah saya perbarui ke v{$version->version_number}.\n\nPertanyaan berikutnya: ".$next->question,
+                'content' => "Terima kasih, sudah saya perbarui ke v{$version->version_number}.\n\nSedikit lagi ya:\n\n".$this->formatQuestions($remaining),
+                'quick_replies' => $this->flattenOptions($remaining),
                 'related_prd_version_id' => $version->id,
             ]);
 
@@ -317,7 +398,7 @@ class ApiController extends Controller
         if ($contradiction) {
             $project->messages()->create([
                 'sender' => 'ai',
-                'content' => "Ambiguitas selesai, PRD kini v{$version->version_number}. Lanjut ke validasi kontradiksi.\n\nSaya menemukan requirement yang saling bertentangan:\n\nA) {$contradiction->requirement_a}\nB) {$contradiction->requirement_b}\n\n{$contradiction->explanation}",
+                'content' => "Oke, sudah cukup jelas. PRD kini v{$version->version_number}. Lanjut ke validasi kontradiksi.\n\nSaya menemukan requirement yang saling bertentangan:\n\nA) {$contradiction->requirement_a}\nB) {$contradiction->requirement_b}\n\n{$contradiction->explanation}",
                 'quick_replies' => ['Pakai A', 'Pakai B', 'Saya revisi manual'],
                 'related_prd_version_id' => $version->id,
             ]);
@@ -327,8 +408,8 @@ class ApiController extends Controller
 
         $project->messages()->create([
             'sender' => 'ai',
-            'content' => "Semua ambiguitas selesai. PRD v{$version->version_number} sudah konsisten dan siap difinalisasi. Kamu masih bisa mengetik revisi bebas kapan saja.",
-            'quick_replies' => ['Tampilkan dokumen lengkap'],
+            'content' => "Sudah cukup, makasih! PRD v{$version->version_number} sudah konsisten dan siap difinalisasi. Kamu masih bisa mengetik revisi bebas kapan saja.",
+            'quick_replies' => ['Lihat dokumen lengkap'],
             'related_prd_version_id' => $version->id,
         ]);
     }
@@ -370,18 +451,11 @@ class ApiController extends Controller
         $version = $this->newVersion($project, $revised, $this->generator->provider());
         $this->refreshFlags($version);
 
-        $ambiguity = $version->ambiguityFlags()->where('is_resolved', false)->first();
+        // Revisi bebas tidak memicu interogasi baru: pertanyaan yang muncul dari
+        // revisi dianggap sudah terjawab agar alur tetap sederhana & cepat.
+        $this->resolveRemainingAmbiguities($version);
+
         $contradiction = $version->contradictionFlags()->whereNull('resolution')->first();
-
-        if ($ambiguity) {
-            $project->messages()->create([
-                'sender' => 'ai',
-                'content' => "Revisi masuk ke v{$version->version_number}, tapi memunculkan ambiguitas baru:\n\n{$ambiguity->question}",
-                'related_prd_version_id' => $version->id,
-            ]);
-
-            return;
-        }
 
         if ($contradiction) {
             $project->messages()->create([
@@ -441,6 +515,7 @@ class ApiController extends Controller
             $version->ambiguityFlags()->create([
                 'code' => $code,
                 'question' => $ambiguity['question'],
+                'options' => $ambiguity['options'] ?? null,
                 'is_resolved' => false,
             ]);
         }

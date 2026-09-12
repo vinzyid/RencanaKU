@@ -35,10 +35,11 @@ class AiGateway
     {
         foreach (config('rencanaku.providers', []) as $provider) {
             $name = $provider['name'] ?? 'unknown';
+            $driver = $provider['driver'] ?? $name;
 
             try {
-                $result = match ($name) {
-                    'openrouter' => $this->callOpenRouter($provider, $systemPrompt, $userPrompt),
+                $result = match ($driver) {
+                    'openai' => $this->callOpenAiCompatible($provider, $systemPrompt, $userPrompt),
                     'gemini' => $this->callGemini($provider, $systemPrompt, $userPrompt),
                     default => $this->localEngine->respond($userPrompt),
                 };
@@ -59,10 +60,18 @@ class AiGateway
         return $this->localEngine->respond($userPrompt);
     }
 
-    private function callOpenRouter(array $provider, string $systemPrompt, string $userPrompt): ?array
+    /**
+     * Provider kompatibel OpenAI (GripHub Router, OpenRouter, dsb).
+     * Endpoint: POST {endpoint} dengan body {model, messages, temperature}.
+     *
+     * Catatan: sebagian gateway (mis. GripHub/9Router) tidak menjamin dukungan
+     * response_format/json_object, jadi kita tidak mengandalkannya. Format JSON
+     * dijaga lewat instruksi di system prompt + parsing defensif di decodeJson().
+     */
+    private function callOpenAiCompatible(array $provider, string $systemPrompt, string $userPrompt): ?array
     {
         if (empty($provider['key'])) {
-            throw new \RuntimeException('OPENROUTER_API_KEY kosong');
+            throw new \RuntimeException(($provider['name'] ?? 'provider').' API key kosong');
         }
 
         $response = Http::withToken($provider['key'])
@@ -74,7 +83,6 @@ class AiGateway
                     ['role' => 'system', 'content' => $systemPrompt],
                     ['role' => 'user', 'content' => $userPrompt],
                 ],
-                'response_format' => ['type' => 'json_object'],
                 'temperature' => 0.4,
             ]);
 
