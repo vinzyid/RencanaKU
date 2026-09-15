@@ -196,6 +196,7 @@ const icons = {
 // ---------------------------------------------------------------------------
 export function mountApp(root) {
     initTheme();
+    captureOAuthResult();
     window.addEventListener('popstate', () => route(root));
     if (state.token) {
         state.view = 'dashboard';
@@ -203,6 +204,31 @@ export function mountApp(root) {
         state.view = 'landing';
     }
     render(root);
+}
+
+// Tangkap token (atau pesan error) yang dikirim balik oleh callback OAuth,
+// lalu bersihkan hash/query agar tidak tersisa di address bar.
+function captureOAuthResult() {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const oauthToken = hash.get('oauth_token');
+
+    if (oauthToken) {
+        state.token = oauthToken;
+        localStorage.setItem(STORAGE_KEY, oauthToken);
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+}
+
+// Pesan error OAuth (bila ada) untuk ditampilkan di layar auth.
+function readOAuthError() {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('oauth_error');
+
+    if (error) {
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    return error || '';
 }
 
 function route(root) {
@@ -434,6 +460,7 @@ function renderLanding(root) {
 // ---------------------------------------------------------------------------
 function renderAuth(root) {
     const isRegister = state.authMode === 'register';
+    const oauthError = readOAuthError();
 
     root.innerHTML = `
     <div class="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-white dark:bg-[#0B0D14] transition-colors">
@@ -504,12 +531,12 @@ function renderAuth(root) {
 
                 <!-- Social buttons -->
                 <div class="grid grid-cols-2 gap-3">
-                    <button type="button" data-oauth="Google" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
+                    <a href="/oauth/google" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
                         ${icons.google} Google
-                    </button>
-                    <button type="button" data-oauth="GitHub" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
+                    </a>
+                    <a href="/oauth/github" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
                         ${icons.github} GitHub
-                    </button>
+                    </a>
                 </div>
 
                 <!-- Switch login/register -->
@@ -559,6 +586,10 @@ function renderAuth(root) {
     </div>`;
 
     // Events
+    if (oauthError) {
+        root.querySelector('#auth-error').textContent = oauthError;
+    }
+
     root.querySelector('#auth-back-home').onclick = (e) => {
         e.preventDefault();
         state.view = 'landing';
@@ -574,10 +605,6 @@ function renderAuth(root) {
             comingSoon('Fitur lupa password');
         };
     }
-
-    root.querySelectorAll('[data-oauth]').forEach(btn => {
-        btn.onclick = () => comingSoon(`Login dengan ${btn.dataset.oauth}`);
-    });
 
     root.querySelector('#auth-switch-mode').onclick = (e) => {
         e.preventDefault();
