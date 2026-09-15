@@ -710,6 +710,10 @@ async function renderWorkspaceShell(root) {
                     <a href="#" data-nav="settings" data-soon="Pengaturan" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
                         <span class="text-base">⚙️</span> Pengaturan
                     </a>
+                    ${state.user?.role === 'admin' ? `
+                    <a href="#" data-nav="admin-tokens" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
+                        <span class="text-base">📈</span> Penggunaan Token
+                    </a>` : ''}
                 </nav>
             </div>
 
@@ -828,6 +832,14 @@ async function renderWorkspaceShell(root) {
             item.classList.add('text-[#5B4DF6]', 'font-bold', 'bg-indigo-50', 'dark:bg-indigo-950/60');
 
             resetProjectState();
+
+            // Halaman admin (pemakaian token) hanya untuk role admin.
+            if (item.dataset.nav === 'admin-tokens' && state.user?.role === 'admin') {
+                state.view = 'admin-tokens';
+                render(root);
+                return;
+            }
+
             state.view = 'dashboard';
             render(root);
         };
@@ -847,9 +859,155 @@ function renderWorkspaceContent(root) {
         renderProjectChatView(root, container);
     } else if (state.view === 'documentation') {
         renderDocumentationView(root, container);
+    } else if (state.view === 'admin-tokens' && state.user?.role === 'admin') {
+        renderAdminTokenUsage(root, container);
     } else {
         renderProjectsGrid(root, container);
     }
+}
+
+// ---------------------------------------------------------------------------
+// 4b. Admin — Penggunaan Token (khusus role admin)
+// ---------------------------------------------------------------------------
+async function renderAdminTokenUsage(root, container) {
+    container.innerHTML = `
+    <div class="space-y-6">
+        <!-- Section Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">Penggunaan Token</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pantau pemakaian token AI (khusus admin).</p>
+            </div>
+            <button id="admin-token-refresh" class="btn-secondary text-xs px-4 py-2 font-semibold">Muat ulang</button>
+        </div>
+
+        <!-- Ringkasan statistik -->
+        <div id="admin-stat-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            ${adminStatCard('Total Token', '…', '🧮')}
+            ${adminStatCard('Total Request', '…', '📨')}
+            ${adminStatCard('Prompt Token', '…', '⬆️')}
+            ${adminStatCard('Completion Token', '…', '⬇️')}
+        </div>
+
+        <!-- Ringkasan per provider -->
+        <div class="bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+                <h2 class="text-sm font-bold text-slate-900 dark:text-white font-heading">Pemakaian per Provider</h2>
+            </div>
+            <div id="admin-by-provider" class="p-6">
+                <p class="text-xs text-slate-400">Memuat…</p>
+            </div>
+        </div>
+
+        <!-- Tabel detail per request -->
+        <div class="bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+                <h2 class="text-sm font-bold text-slate-900 dark:text-white font-heading">Detail per Request</h2>
+            </div>
+            <div id="admin-token-table" class="overflow-x-auto">
+                <p class="text-xs text-slate-400 p-6">Memuat…</p>
+            </div>
+        </div>
+    </div>`;
+
+    const refreshBtn = container.querySelector('#admin-token-refresh');
+    if (refreshBtn) refreshBtn.onclick = () => loadAdminTokenUsage(root, container);
+
+    await loadAdminTokenUsage(root, container);
+}
+
+async function loadAdminTokenUsage(root, container) {
+    const statGrid = container.querySelector('#admin-stat-grid');
+    const providerBox = container.querySelector('#admin-by-provider');
+    const tableBox = container.querySelector('#admin-token-table');
+    if (!statGrid) return;
+
+    try {
+        const data = await api('/admin/token-usage');
+        const s = data.summary || {};
+
+        statGrid.innerHTML = `
+            ${adminStatCard('Total Token', formatNumber(s.total_tokens), '🧮')}
+            ${adminStatCard('Total Request', formatNumber(s.requests), '📨')}
+            ${adminStatCard('Prompt Token', formatNumber(s.prompt_tokens), '⬆️')}
+            ${adminStatCard('Completion Token', formatNumber(s.completion_tokens), '⬇️')}`;
+
+        // Per provider
+        const providers = data.by_provider || [];
+        providerBox.innerHTML = providers.length
+            ? `<div class="flex flex-wrap gap-2">
+                ${providers.map(p => `
+                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
+                        ${esc(p.provider || 'unknown')}
+                        <span class="text-slate-400">·</span>
+                        ${formatNumber(p.requests)} req
+                        <span class="text-slate-400">·</span>
+                        ${formatNumber(p.total_tokens)} token
+                    </span>`).join('')}
+            </div>`
+            : '<p class="text-xs text-slate-400">Belum ada pemakaian.</p>';
+
+        // Detail tabel
+        const recent = data.recent || [];
+        tableBox.innerHTML = recent.length
+            ? `<table class="w-full text-xs">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400">
+                    <tr>
+                        <th class="text-left font-semibold px-4 py-3">Waktu</th>
+                        <th class="text-left font-semibold px-4 py-3">User</th>
+                        <th class="text-left font-semibold px-4 py-3">Proyek</th>
+                        <th class="text-left font-semibold px-4 py-3">Provider</th>
+                        <th class="text-left font-semibold px-4 py-3">Mode</th>
+                        <th class="text-right font-semibold px-4 py-3">Prompt</th>
+                        <th class="text-right font-semibold px-4 py-3">Completion</th>
+                        <th class="text-right font-semibold px-4 py-3">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    ${recent.map(r => `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td class="px-4 py-3 text-slate-500 whitespace-nowrap">${formatDateTime(r.created_at)}</td>
+                        <td class="px-4 py-3">
+                            <div class="font-semibold text-slate-800 dark:text-slate-100">${esc(r.user_name)}</div>
+                            <div class="text-[11px] text-slate-400">${esc(r.user_email)}</div>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300">${esc(r.project_title)}</td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300">${esc(r.provider || '-')}</td>
+                        <td class="px-4 py-3 text-slate-500">${esc(r.mode || '-')}</td>
+                        <td class="px-4 py-3 text-right text-slate-600 dark:text-slate-300">${formatNumber(r.prompt_tokens)}</td>
+                        <td class="px-4 py-3 text-right text-slate-600 dark:text-slate-300">${formatNumber(r.completion_tokens)}</td>
+                        <td class="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">${formatNumber(r.total_tokens)}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>`
+            : '<p class="text-xs text-slate-400 p-6">Belum ada pemakaian token.</p>';
+    } catch (error) {
+        statGrid.innerHTML = `<p class="text-xs text-rose-500">${esc(error.message)}</p>`;
+    }
+}
+
+function formatNumber(value) {
+    return new Intl.NumberFormat('id-ID').format(Number(value || 0));
+}
+
+function formatDateTime(iso) {
+    if (!iso) return '-';
+    try {
+        return new Date(iso).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+    } catch {
+        return '-';
+    }
+}
+
+function adminStatCard(label, value, icon) {
+    return `
+    <div class="bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">${label}</span>
+            <span class="text-base">${icon}</span>
+        </div>
+        <div class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">${value}</div>
+    </div>`;
 }
 
 // ---------------------------------------------------------------------------

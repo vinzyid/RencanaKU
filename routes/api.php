@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,4 +25,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/projects/{project}/versions', [ApiController::class, 'versions']);
     Route::post('/projects/{project}/finalize', [ApiController::class, 'finalize']);
     Route::get('/projects/{project}/export/{format}', [ApiController::class, 'export']);
+});
+
+// Admin (hanya role admin)
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/token-usage', [AdminController::class, 'tokenUsage']);
 });

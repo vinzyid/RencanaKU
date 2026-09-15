@@ -24,6 +24,30 @@ class PrdGenerator
     }
 
     /**
+     * Set konteks user/project agar pemakaian token tercatat ke pemilik yang benar.
+     */
+    public function setContext(?int $userId, ?int $projectId = null): static
+    {
+        $this->contextUserId = $userId;
+        $this->contextProjectId = $projectId;
+
+        return $this;
+    }
+
+    private ?int $contextUserId = null;
+    private ?int $contextProjectId = null;
+
+    /**
+     * Jalankan gateway dengan konteks + label mode tertentu.
+     */
+    private function ask(string $mode, string $system, string $user): array
+    {
+        return $this->gateway
+            ->withContext($this->contextUserId, $this->contextProjectId, $mode)
+            ->chat($system, $user);
+    }
+
+    /**
      * Generate draft PRD dari ide awal user.
      */
     public function generate(string $prompt): array
@@ -47,7 +71,7 @@ class PrdGenerator
 
         $user = "[MODE:generate]\n[PROMPT:{$prompt}]";
 
-        return $this->normalize($this->gateway->chat($system, $user), $prompt);
+        return $this->normalize($this->ask('generate', $system, $user), $prompt);
     }
 
     /**
@@ -82,7 +106,7 @@ class PrdGenerator
 
         $user = "[MODE:ambiguity]\n[PROMPT:{$prdText}]";
 
-        $result = $this->gateway->chat($system, $user);
+        $result = $this->ask('ambiguity', $system, $user);
         $items = $result['ambiguities'] ?? $result['questions'] ?? [];
 
         return $this->normalizeQuestions($items);
@@ -104,7 +128,7 @@ class PrdGenerator
 
         $user = "[MODE:contradiction]\n[PROMPT:{$prdText}]";
 
-        $result = $this->gateway->chat($system, $user);
+        $result = $this->ask('contradiction', $system, $user);
         $items = $result['contradictions'] ?? [];
 
         return $this->normalizeContradictions($items);
@@ -135,7 +159,7 @@ class PrdGenerator
 
         $user = "[MODE:revise]\n[PROMPT:{$instruction}]\n{$context}[PRD:{$prdText}]";
 
-        return $this->normalize($this->gateway->chat($system, $user), $instruction, $prd);
+        return $this->normalize($this->ask('revise', $system, $user), $instruction, $prd);
     }
 
     /**

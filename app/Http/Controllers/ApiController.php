@@ -35,6 +35,8 @@ class ApiController extends Controller
             'password' => 'required|string|min:8',
         ]);
 
+        $data['role'] = User::roleForEmail($data['email']);
+
         $user = User::create($data);
 
         return $this->tokenResponse($user, 201);
@@ -239,6 +241,9 @@ class ApiController extends Controller
      */
     private function processUserMessage(Project $project, string $content): void
     {
+        // Semua pemakaian token dalam alur ini diatribusikan ke user & proyek.
+        $this->generator->setContext($project->user_id, $project->id);
+
         $project->messages()->create(['sender' => 'user', 'content' => $content]);
 
         $latest = $project->prdVersions()->latest('version_number')->first();

@@ -46,10 +46,12 @@ class SocialAuthController extends Controller
         }
 
         if ($user) {
-            // Keep the account linked to its social identity.
+            // Keep the account linked to its social identity, and promote to
+            // admin if the email is listed in config('rencanaku.admin_emails').
             $user->forceFill([
                 'auth_provider' => $provider,
                 'provider_id' => $socialUser->getId(),
+                'role' => User::roleForEmail($user->email),
             ])->save();
 
             return $user;
@@ -64,6 +66,7 @@ class SocialAuthController extends Controller
             'password' => Hash::make(Str::random(64)),
             'auth_provider' => $provider,
             'provider_id' => $socialUser->getId(),
+            'role' => User::roleForEmail($email),
             'email_verified_at' => now(),
         ]);
     }

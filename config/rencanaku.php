@@ -49,4 +49,16 @@ return [
     ],
 
     'timeout' => (int) env('AI_REQUEST_TIMEOUT', 30),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Emails
+    |--------------------------------------------------------------------------
+    | Email yang otomatis diberi role "admin" saat mendaftar / login (manual,
+    | Google, maupun GitHub). Daftar ini dipisah koma di env ADMIN_EMAILS.
+    */
+    'admin_emails' => array_values(array_filter(array_map(
+        fn ($email) => mb_strtolower(trim($email)),
+        explode(',', (string) env('ADMIN_EMAILS', ''))
+    ))),
 ];

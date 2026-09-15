@@ -25,7 +25,29 @@ class User extends Authenticatable
         'password',
         'auth_provider',
         'provider_id',
+        'role',
     ];
+
+    public const ROLE_USER = 'user';
+    public const ROLE_ADMIN = 'admin';
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    /**
+     * Role default untuk sebuah email: "admin" bila terdaftar di
+     * config('rencanaku.admin_emails'), selain itu "user".
+     */
+    public static function roleForEmail(?string $email): string
+    {
+        $normalized = mb_strtolower(trim((string) $email));
+
+        return in_array($normalized, config('rencanaku.admin_emails', []), true)
+            ? self::ROLE_ADMIN
+            : self::ROLE_USER;
+    }
 
     /**
      * The attributes that should be hidden for serialization.

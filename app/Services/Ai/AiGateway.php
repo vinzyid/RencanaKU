@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai;
 
+use App\Models\TokenUsage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -19,6 +20,9 @@ class AiGateway
 {
     private ?string $lastProvider = null;
 
+    /** @var array{user_id?: ?int, project_id?: ?int, mode?: ?string} */
+    private array $context = [];
+
     public function __construct(private readonly LocalPrdEngine $localEngine)
     {
     }
@@ -26,6 +30,55 @@ class AiGateway
     public function lastProvider(): ?string
     {
         return $this->lastProvider;
+    }
+
+    /**
+     * Set konteks pemanggilan (user/project/mode) agar setiap pemakaian token
+     * bisa diatribusikan ke user & proyek yang benar.
+     */
+    public function withContext(?int $userId, ?int $projectId = null, ?string $mode = null): static
+    {
+        $this->context = [
+            'user_id' => $userId,
+            'project_id' => $projectId,
+            'mode' => $mode,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Catat pemakaian token dari respons provider (bila tersedia).
+     */
+    private function recordUsage(string $provider, string $model, ?array $usage): void
+    {
+        if (! is_array($usage)) {
+            return;
+        }
+
+        $prompt = (int) ($usage['prompt_tokens'] ?? $usage['promptTokenCount'] ?? 0);
+        $completion = (int) ($usage['completion_tokens'] ?? $usage['candidatesTokenCount'] ?? 0);
+        $total = (int) ($usage['total_tokens'] ?? $usage['totalTokenCount'] ?? ($prompt + $completion));
+
+        if ($total === 0 && $prompt === 0 && $completion === 0) {
+            return;
+        }
+
+        try {
+            TokenUsage::create([
+                'user_id' => $this->context['user_id'] ?? null,
+                'project_id' => $this->context['project_id'] ?? null,
+                'provider' => $provider,
+                'model' => $model,
+                'mode' => $this->context['mode'] ?? null,
+                'prompt_tokens' => $prompt,
+                'completion_tokens' => $completion,
+                'total_tokens' => $total,
+            ]);
+        } catch (\Throwable $e) {
+            // Pencatatan token tidak boleh mengganggu proses utama.
+            Log::warning('[AiGateway] gagal mencatat token: '.$e->getMessage());
+        }
     }
 
     /**
@@ -88,7 +141,10 @@ class AiGateway
 
         $response->throw();
 
-        $content = data_get($response->json(), 'choices.0.message.content');
+        $json = $response->json();
+        $this->recordUsage($provider['name'] ?? 'openai', $provider['model'] ?? '', $json['usage'] ?? null);
+
+        $content = data_get($json, 'choices.0.message.content');
 
         return $this->decodeJson($content);
     }
@@ -116,7 +172,14 @@ class AiGateway
 
         $response->throw();
 
-        $content = data_get($response->json(), 'candidates.0.content.parts.0.text');
+        $json = $response->json();
+        $this->recordUsage(
+            $provider['name'] ?? 'gemini',
+            $provider['model'] ?? '',
+            $json['usageMetadata'] ?? null
+        );
+
+        $content = data_get($json, 'candidates.0.content.parts.0.text');
 
         return $this->decodeJson($content);
     }
