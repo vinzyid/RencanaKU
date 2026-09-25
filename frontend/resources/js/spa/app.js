@@ -356,15 +356,30 @@ function renderLanding(root) {
                     </div>
 
                     <!-- Floating PRD Status Card -->
-                    <div class="hidden sm:block absolute -bottom-10 -left-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl w-48 text-left animate-float" style="animation-delay: -1s;">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white font-heading">PRD</span>
+                    <div class="hidden sm:block absolute bottom-4 -left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/80 dark:border-slate-700/80 rounded-2xl p-3.5 shadow-2xl w-48 text-left animate-float z-10" style="animation-delay: -1s;">
+                        <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100 dark:border-slate-800/80">
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-white font-heading flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> PRD Output
+                            </span>
+                            <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full">v1.0</span>
                         </div>
-                        <ul class="space-y-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300">
-                            <li class="flex items-center gap-1.5"><span class="text-emerald-500">✔</span> Terstruktur</li>
-                            <li class="flex items-center gap-1.5"><span class="text-emerald-500">✔</span> Jelas</li>
-                            <li class="flex items-center gap-1.5"><span class="text-emerald-500">✔</span> Bebas kontradiksi</li>
-                            <li class="flex items-center gap-1.5"><span class="text-emerald-500">✔</span> Siap dieksekusi</li>
+                        <ul class="space-y-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+                                <span>Terstruktur</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+                                <span>Jelas</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+                                <span>Bebas kontradiksi</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+                                <span>Siap dieksekusi</span>
+                            </li>
                         </ul>
                     </div>
                 </div>

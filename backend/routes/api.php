@@ -4,10 +4,10 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApiController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [ApiController::class, 'register']);
-Route::post('/login', [ApiController::class, 'login']);
+Route::post('/register', [ApiController::class, 'register'])->middleware('throttle:register');
+Route::post('/login', [ApiController::class, 'login'])->middleware('throttle:login');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [ApiController::class, 'logout']);
     Route::get('/me', [ApiController::class, 'me']);
 
@@ -20,7 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Chat thread: satu endpoint menangani ide awal, jawaban klarifikasi,
     // resolusi kontradiksi, dan revisi bebas.
     Route::get('/projects/{project}/messages', [ApiController::class, 'messages']);
-    Route::post('/projects/{project}/messages', [ApiController::class, 'sendMessage']);
+    Route::post('/projects/{project}/messages', [ApiController::class, 'sendMessage'])->middleware('throttle:ai-messages');
 
     Route::get('/projects/{project}/versions', [ApiController::class, 'versions']);
     Route::post('/projects/{project}/finalize', [ApiController::class, 'finalize']);
@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Admin (hanya role admin)
-Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'admin', 'throttle:api'])->prefix('admin')->group(function () {
     Route::get('/token-usage', [AdminController::class, 'tokenUsage']);
 });
+

@@ -87,7 +87,7 @@ class PrdGenerator
         Penggunamu adalah orang awam yang TIDAK paham istilah teknis.
 
         Aturan pertanyaan:
-        - Ajukan maksimal 2 pertanyaan yang PALING penting saja.
+        - Ajukan maksimal 1 pertanyaan yang PALING penting saja.
         - Gunakan bahasa sehari-hari yang mudah dipahami orang awam (hindari kata seperti "requirement", "KPI", "SLA", "role", "2FA", "endpoint").
         - Setiap pertanyaan WAJIB menyertakan 2-3 pilihan jawaban siap-klik dalam bentuk singkat, agar pengguna tinggal memilih tanpa harus mengetik panjang.
         - Jika PRD sudah cukup jelas, kembalikan "ambiguities": [].
@@ -223,7 +223,7 @@ class PrdGenerator
             $out[] = ['key' => $key, 'question' => $question, 'requirement_ref' => $ref, 'options' => $options];
         }
 
-        return array_slice($out, 0, 3);
+        return array_slice($out, 0, 1);
     }
 
     private function normalizeContradictions(array $items): array

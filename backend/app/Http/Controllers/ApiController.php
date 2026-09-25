@@ -400,11 +400,11 @@ class ApiController extends Controller
 
     private function handleAmbiguityAnswer(Project $project, PrdVersion $latest, AmbiguityFlag $flag, string $content): void
     {
-        // Pertanyaan dikirim dalam satu batch, jadi balasan ini menjawab seluruh
-        // pertanyaan yang belum selesai pada versi sebelumnya.
-        $latest->ambiguityFlags()
-            ->where('is_resolved', false)
-            ->update(['is_resolved' => true, 'resolution_answer' => $content]);
+        // Tandai HANYA pertanyaan spesifik ini yang terselesaikan dengan jawaban pengguna.
+        $flag->update([
+            'is_resolved' => true,
+            'resolution_answer' => $content,
+        ]);
 
         $revised = $this->generator->revise($latest->decodedContent(), $content, $flag->question);
         $version = $this->newVersion($project, $revised, $this->generator->provider());
@@ -580,14 +580,21 @@ class ApiController extends Controller
 
     private function newVersion(Project $project, array $content, ?string $provider): PrdVersion
     {
-        $number = ((int) $project->prdVersions()->max('version_number')) + 1;
+        return DB::transaction(function () use ($project, $content, $provider) {
+            $latestVersion = PrdVersion::where('project_id', $project->id)
+                ->lockForUpdate()
+                ->orderByDesc('version_number')
+                ->first();
 
-        return $project->prdVersions()->create([
-            'version_number' => $number,
-            'content' => $content,
-            'status' => 'draft',
-            'ai_provider' => $provider ?? 'local',
-        ]);
+            $nextNumber = ($latestVersion?->version_number ?? 0) + 1;
+
+            return $project->prdVersions()->create([
+                'version_number' => $nextNumber,
+                'content' => $content,
+                'status' => 'draft',
+                'ai_provider' => $provider ?? 'local',
+            ]);
+        }, self::DB_TRANSACTION_ATTEMPTS);
     }
 
     private function tokenResponse(User $user, int $status = 200)
