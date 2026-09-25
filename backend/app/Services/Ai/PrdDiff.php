@@ -2,6 +2,9 @@
 
 namespace App\Services\Ai;
 
+use App\Models\VersionDiff;
+use Illuminate\Support\Facades\Log;
+
 /**
  * PrdDiff: menghitung perbedaan antar dua versi PRD untuk ditampilkan
  * sebagai highlight warna (hijau = ditambah, merah = dihapus,
@@ -9,6 +12,12 @@ namespace App\Services\Ai;
  */
 class PrdDiff
 {
+    /** Versi algoritma; naikkan bila rumus compare() berubah agar cache lama diabaikan. */
+    private const ALGORITHM_VERSION = 'v1';
+
+    /** Ambang (detik) pencatatan log bila komputasi diff terasa lambat. */
+    private const SLOW_THRESHOLD_SECONDS = 0.1;
+
     private const LIST_FIELDS = [
         'objectives',
         'target_users',
@@ -25,6 +34,8 @@ class PrdDiff
      */
     public function compare(array $before, array $after): array
     {
+        $start = microtime(true);
+
         $sections = [];
 
         foreach (self::TEXT_FIELDS as $field) {
@@ -65,7 +76,69 @@ class PrdDiff
             }
         }
 
+        $duration = microtime(true) - $start;
+        if ($duration > self::SLOW_THRESHOLD_SECONDS) {
+            Log::warning('[PrdDiff.Slow]', [
+                'duration_ms' => round($duration * 1000, 2),
+                'before_size' => strlen(json_encode($before)),
+                'after_size' => strlen(json_encode($after)),
+            ]);
+        }
+
         return $sections;
+    }
+
+    /**
+     * Sama seperti compare(), tetapi hasilnya disimpan ke tabel version_diffs
+     * sehingga diff antar sepasang versi hanya dihitung sekali (Masalah #8).
+     * Bila algoritma berubah, algorithm_version berbeda membuat cache lama
+     * otomatis tidak dipakai.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function compareWithCache(array $before, array $after, int $fromVersionId, int $toVersionId): array
+    {
+        $cached = VersionDiff::query()
+            ->where('from_version_id', $fromVersionId)
+            ->where('to_version_id', $toVersionId)
+            ->where('algorithm_version', self::ALGORITHM_VERSION)
+            ->first();
+
+        if ($cached) {
+            return (array) $cached->diff_data;
+        }
+
+        $diff = $this->compare($before, $after);
+
+        try {
+            VersionDiff::updateOrCreate(
+                [
+                    'from_version_id' => $fromVersionId,
+                    'to_version_id' => $toVersionId,
+                    'algorithm_version' => self::ALGORITHM_VERSION,
+                ],
+                ['diff_data' => $diff],
+            );
+        } catch (\Throwable $e) {
+            // Kegagalan menyimpan cache tidak boleh menggagalkan respons;
+            // diff yang sudah dihitung tetap dikembalikan.
+            Log::warning('[PrdDiff] gagal menyimpan cache diff: '.$e->getMessage());
+        }
+
+        return $diff;
+    }
+
+    /**
+     * Buang cache diff yang menyangkut sebuah versi. Dipakai saat versi
+     * dihapus/diubah kontennya; pada alur normal setiap versi baru selalu
+     * menambah pasangan baru sehingga cache lama tetap valid.
+     */
+    public static function invalidateForVersion(int $versionId): void
+    {
+        VersionDiff::query()
+            ->where('from_version_id', $versionId)
+            ->orWhere('to_version_id', $versionId)
+            ->delete();
     }
 
     private function label(string $field): string

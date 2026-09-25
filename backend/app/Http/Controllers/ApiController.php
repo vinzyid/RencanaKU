@@ -10,9 +10,12 @@ use App\Models\User;
 use App\Services\Ai\PrdDiff;
 use App\Services\Ai\PrdGenerator;
 use App\Services\ProjectFlow;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Response as ResponseFactory;
+use Illuminate\Support\Facades\Log;
 
 class ApiController extends Controller
 {
@@ -20,8 +23,7 @@ class ApiController extends Controller
         private readonly PrdGenerator $generator,
         private readonly PrdDiff $diff,
         private readonly ProjectFlow $flow,
-    ) {
-    }
+    ) {}
 
     // ---------------------------------------------------------------------
     // Auth (Laravel Sanctum, token-based)
@@ -170,7 +172,14 @@ class ApiController extends Controller
                 'ai_provider' => $version->ai_provider,
                 'created_at' => $version->created_at,
                 'content' => $version->decodedContent(),
-                'diff' => $previous ? $this->diff->compare($previous->decodedContent(), $version->decodedContent()) : [],
+                'diff' => $previous
+                    ? $this->diff->compareWithCache(
+                        $previous->decodedContent(),
+                        $version->decodedContent(),
+                        $previous->id,
+                        $version->id,
+                    )
+                    : [],
             ];
         }
 
@@ -238,44 +247,67 @@ class ApiController extends Controller
      * Proses satu pesan user, tentukan konteks berdasarkan state proyek,
      * panggil AI yang sesuai, simpan versi PRD bila berubah, dan hasilkan
      * balasan AI (dengan quick-reply chip bila relevan).
+     *
+     * Seluruh operasi tulis dibungkus satu transaksi database (Masalah #7):
+     * bila salah satu langkah gagal, tidak ada state setengah jadi seperti
+     * pesan user tersimpan tanpa balasan AI. Baris proyek dikunci
+     * (lockForUpdate) agar pesan-pesan yang datang bersamaan diproses
+     * berurutan, bukan saling menimpa versi.
      */
     private function processUserMessage(Project $project, string $content): void
     {
         // Semua pemakaian token dalam alur ini diatribusikan ke user & proyek.
         $this->generator->setContext($project->user_id, $project->id);
 
-        $project->messages()->create(['sender' => 'user', 'content' => $content]);
+        DB::transaction(function () use ($project, $content) {
+            // Kunci proyek: serialisasi pesan yang masuk bersamaan pada proyek
+            // yang sama agar penomoran versi & flag tidak balapan.
+            Project::whereKey($project->id)->lockForUpdate()->first();
 
-        $latest = $project->prdVersions()->latest('version_number')->first();
+            $project->messages()->create(['sender' => 'user', 'content' => $content]);
 
-        // STATE: belum ada PRD sama sekali -> generate draft pertama.
-        if (! $latest) {
-            $this->handleInitialIdea($project, $content);
+            $latest = $project->prdVersions()->latest('version_number')->first();
 
-            return;
-        }
+            // STATE: belum ada PRD sama sekali -> generate draft pertama.
+            if (! $latest) {
+                $this->handleInitialIdea($project, $content);
 
-        // STATE: ada ambiguitas belum terselesaikan -> ini jawaban klarifikasi.
-        $pendingAmbiguity = $latest->ambiguityFlags()->where('is_resolved', false)->first();
-        if ($pendingAmbiguity) {
-            $this->handleAmbiguityAnswer($project, $latest, $pendingAmbiguity, $content);
+                return;
+            }
 
-            return;
-        }
+            // STATE: ada ambiguitas belum terselesaikan -> ini jawaban klarifikasi.
+            $pendingAmbiguity = $latest->ambiguityFlags()
+                ->where('is_resolved', false)
+                ->lockForUpdate()
+                ->first();
 
-        // STATE: ada kontradiksi belum terselesaikan -> ini resolusi kontradiksi.
-        $pendingContradiction = $latest->contradictionFlags()->whereNull('resolution')->first();
-        if ($pendingContradiction) {
-            $this->handleContradictionAnswer($project, $latest, $pendingContradiction, $content);
+            if ($pendingAmbiguity) {
+                $this->handleAmbiguityAnswer($project, $latest, $pendingAmbiguity, $content);
 
-            return;
-        }
+                return;
+            }
 
-        // STATE: draft sudah bersih -> ini revisi bebas (tahap Dokumentasi).
-        $this->handleFreeRevision($project, $latest, $content);
+            // STATE: ada kontradiksi belum terselesaikan -> ini resolusi kontradiksi.
+            $pendingContradiction = $latest->contradictionFlags()
+                ->whereNull('resolution')
+                ->lockForUpdate()
+                ->first();
+
+            if ($pendingContradiction) {
+                $this->handleContradictionAnswer($project, $latest, $pendingContradiction, $content);
+
+                return;
+            }
+
+            // STATE: draft sudah bersih -> ini revisi bebas (tahap Dokumentasi).
+            $this->handleFreeRevision($project, $latest, $content);
+        }, self::DB_TRANSACTION_ATTEMPTS);
     }
 
     private const MAX_CLARIFICATION_ROUNDS = 2;
+
+    /** Percobaan ulang transaksi saat deadlock (deteksi otomatis oleh Laravel). */
+    private const DB_TRANSACTION_ATTEMPTS = 3;
 
     private function handleInitialIdea(Project $project, string $content): void
     {
@@ -313,7 +345,7 @@ class ApiController extends Controller
      * Format daftar pertanyaan klarifikasi jadi satu pesan ringkas
      * (bukan satu pesan per pertanyaan) beserta pilihan jawaban.
      */
-    private function formatQuestions(\Illuminate\Support\Collection $questions): string
+    private function formatQuestions(Collection $questions): string
     {
         return $questions->values()->map(function ($flag, $i) {
             $options = collect($flag->options ?? [])
@@ -328,7 +360,7 @@ class ApiController extends Controller
      * Kumpulkan semua opsi jawaban dari daftar pertanyaan menjadi chip
      * siap-klik, dibatasi agar tidak membanjiri antarmuka.
      */
-    private function flattenOptions(\Illuminate\Support\Collection $questions): array
+    private function flattenOptions(Collection $questions): array
     {
         return $questions
             ->flatMap(fn ($flag) => $flag->options ?? [])
@@ -684,34 +716,40 @@ class ApiController extends Controller
     }
 
     /**
-     * Export PDF. Memakai DomPDF bila tersedia; jika tidak, fallback ke
-     * halaman HTML siap-cetak dengan header Content-Type application/pdf.
+     * Export PDF. Memakai DomPDF untuk menghasilkan berkas PDF valid
+     * (Masalah #9). Tidak ada lagi HTML yang disamarkan sebagai PDF: bila
+     * pembuatan gagal, respons berisi pesan jelas beserta alternatif format
+     * markdown/json alih-alih berkas rusak.
      */
     private function exportPdf(Project $project, array $content)
     {
-        $html = view('exports.prd-pdf', [
-            'project' => $project,
-            'content' => $content,
-        ])->render();
-
         $slug = $this->slug($project->title);
 
-        if (class_exists(\Dompdf\Dompdf::class)) {
-            $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => true]);
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4');
-            $dompdf->render();
+        try {
+            $pdf = Pdf::loadView('exports.prd-pdf', [
+                'project' => $project,
+                'content' => $content,
+            ])
+                ->setPaper('a4', 'portrait')
+                ->setOption('isRemoteEnabled', false)
+                ->setOption('isHtml5ParserEnabled', true)
+                ->setOption('defaultFont', 'DejaVu Sans');
 
-            return ResponseFactory::make($dompdf->output(), 200, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => "attachment; filename=\"{$slug}.pdf\"",
+            return $pdf->download("{$slug}.pdf");
+        } catch (\Throwable $e) {
+            Log::error('[Export.PDF] gagal membuat PDF', [
+                'project_id' => $project->id,
+                'error' => $e->getMessage(),
             ]);
-        }
 
-        return response($html, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => "attachment; filename=\"{$slug}.pdf\"",
-        ]);
+            return response()->json([
+                'message' => 'Gagal membuat PDF. Silakan pakai format markdown atau JSON.',
+                'alternatives' => [
+                    ['format' => 'markdown', 'url' => "/api/projects/{$project->id}/export/md"],
+                    ['format' => 'json', 'url' => "/api/projects/{$project->id}/export/json"],
+                ],
+            ], 500);
+        }
     }
 
     private function slug(string $value): string
