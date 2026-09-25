@@ -24,45 +24,62 @@ class SocialAuthController extends Controller
     }
 
     /**
-     * Resolve (or create) the local user for a social login. This is the
-     * "auto-register" policy: an unknown social account is registered on the
-     * fly, so the same button works for both first-timers and returning users.
+     * Resolve (or create) the local user for a social login.
      *
-     * Lookup order:
-     *   1. Match on (auth_provider, provider_id) — the same social account.
-     *   2. Fall back to email — links a social login to an existing manual account.
+     * Keamanan Akun (Masalah #6 - Anti Account Takeover):
+     * 1. Match pada (auth_provider, provider_id) — identitas social yang sudah terverifikasi sebelumnya.
+     * 2. Jika akun belum terhubung dengan provider_id ini, periksa apakah email sudah terdaftar:
+     *    - Jika email sudah terdaftar secara manual (auth_provider null), tolak auto-link untuk mencegah
+     *      account takeover oleh penyerang yang membuat akun pihak ketiga dengan email target.
+     *    - Jika email sudah terdaftar dengan OAuth provider lain, tolak auto-link antar-provider.
+     *    - Jika email sudah terdaftar dengan provider yang sama tapi provider_id berbeda, tolak.
+     * 3. Jika email belum pernah terdaftar, buat akun baru yang aman.
      */
     private function resolveUser(string $provider, SocialiteUser $socialUser, string $email, ?string $name): User
     {
-        // 1) Exact social identity for this provider.
+        // 1) Cek pencocokan identitas exact provider & provider_id
         $user = User::where('auth_provider', $provider)
             ->where('provider_id', $socialUser->getId())
             ->first();
 
-        // 2) Otherwise link to an existing account with the same email so we
-        //    don't end up with duplicate accounts.
-        if (! $user) {
-            $user = User::where('email', $email)->first();
-        }
-
         if ($user) {
-            // Keep the account linked to its social identity, and promote to
-            // admin if the email is listed in config('rencanaku.admin_emails').
             $user->forceFill([
-                'auth_provider' => $provider,
-                'provider_id' => $socialUser->getId(),
                 'role' => User::roleForEmail($user->email),
             ])->save();
 
             return $user;
         }
 
+        // 2) Periksa apakah email sudah terdaftar di sistem
+        $existing = User::where('email', $email)->first();
+
+        if ($existing) {
+            Log::warning('[SocialAuth] Percobaan login sosial ditolak untuk mencegah account takeover', [
+                'attempted_provider' => $provider,
+                'attempted_provider_id' => $socialUser->getId(),
+                'email' => $email,
+                'existing_user_id' => $existing->id,
+                'existing_auth_provider' => $existing->auth_provider,
+                'ip' => request()->ip(),
+            ]);
+
+            if (empty($existing->auth_provider)) {
+                throw new \DomainException('Email ini sudah terdaftar dengan password. Silakan masuk menggunakan email dan password Anda.');
+            }
+
+            if ($existing->auth_provider !== $provider) {
+                $providerName = ucfirst($existing->auth_provider);
+                throw new \DomainException("Email ini sudah terdaftar menggunakan akun {$providerName}. Silakan masuk menggunakan metode tersebut.");
+            }
+
+            throw new \DomainException("Email ini sudah terhubung dengan akun {$provider} yang berbeda.");
+        }
+
+        // 3) Akun baru yang belum pernah terdaftar
         return User::create([
             'name' => $name ?: Str::before($email, '@'),
             'email' => $email,
-            // Social accounts have no usable password. Use an unguessable
-            // random value so password login stays impossible until the user
-            // explicitly sets one.
+            // Akun sosial tidak memiliki password usable
             'password' => Hash::make(Str::random(64)),
             'auth_provider' => $provider,
             'provider_id' => $socialUser->getId(),
@@ -95,6 +112,8 @@ class SocialAuthController extends Controller
             $user = $this->resolveUser('google', $googleUser, $email, $googleUser->getName());
 
             return $this->tokenRedirect($user);
+        } catch (\DomainException $e) {
+            return redirect('/?oauth_error=' . urlencode($e->getMessage()));
         } catch (\Throwable $e) {
             Log::error('Google OAuth failed: ' . $e->getMessage(), ['exception' => $e]);
 
@@ -127,6 +146,8 @@ class SocialAuthController extends Controller
             $user = $this->resolveUser('github', $githubUser, $email, $githubUser->getName());
 
             return $this->tokenRedirect($user);
+        } catch (\DomainException $e) {
+            return redirect('/?oauth_error=' . urlencode($e->getMessage()));
         } catch (\Throwable $e) {
             Log::error('GitHub OAuth failed: ' . $e->getMessage(), ['exception' => $e]);
 

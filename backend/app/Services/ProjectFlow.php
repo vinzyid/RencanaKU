@@ -67,14 +67,42 @@ class ProjectFlow
     {
         $normalized = mb_strtolower(trim($content));
 
-        if (preg_match('/\b(pakai|pilih|pake|gunakan|pertahankan)?\s*\ba\b/u', $normalized) && ! str_contains($normalized, 'revisi')) {
+        if ($normalized === '') {
+            return 'unknown';
+        }
+
+        // 1. Pilihan langsung berdiri sendiri (misal "A", "B", "opsi a", "pilihan b")
+        if (preg_match('/^(?:opsi|option|pilihan)?\s*a$/iu', $normalized)) {
             return 'kept_a';
         }
 
-        if (preg_match('/\b(pakai|pilih|pake|gunakan|pertahankan)?\s*\bb\b/u', $normalized) && ! str_contains($normalized, 'revisi')) {
+        if (preg_match('/^(?:opsi|option|pilihan)?\s*b$/iu', $normalized)) {
             return 'kept_b';
         }
 
-        return 'revised';
+        // 2. Deteksi kata kerja pemilihan eksplisit untuk opsi A atau B
+        $selectsA = (bool) preg_match('/\b(?:pilih|pake|pakai|gunakan|pertahankan|keep|ambil)\s+(?:opsi\s+|option\s+|pilihan\s+)?a\b/iu', $normalized);
+        $selectsB = (bool) preg_match('/\b(?:pilih|pake|pakai|gunakan|pertahankan|keep|ambil)\s+(?:opsi\s+|option\s+|pilihan\s+)?b\b/iu', $normalized);
+
+        // Jika ambigu (menyebutkan kedua opsi dalam konteks pemilihan atau membandingkan keduanya)
+        if (($selectsA && $selectsB) || ($selectsA && preg_match('/\bb\b/iu', $normalized)) || ($selectsB && preg_match('/\ba\b/iu', $normalized))) {
+            return 'ambiguous';
+        }
+
+        if ($selectsA) {
+            return 'kept_a';
+        }
+
+        if ($selectsB) {
+            return 'kept_b';
+        }
+
+        // 3. Deteksi niat revisi eksplisit
+        if (preg_match('/\b(?:revisi|ubah|ganti|edit|modify)\b/iu', $normalized)) {
+            return 'revised';
+        }
+
+        // 4. Fallback default jika tidak ada indikasi pemilihan maupun revisi
+        return 'unknown';
     }
 }
