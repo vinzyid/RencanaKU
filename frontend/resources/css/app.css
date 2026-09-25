@@ -1,5 +1,8 @@
 ﻿@import 'tailwindcss';
 
+@source '../js/**/*.js';
+@source '../../../backend/resources/views/**/*.blade.php';
+
 :root {
     --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     --font-heading: 'Outfit', 'Plus Jakarta Sans', sans-serif;
