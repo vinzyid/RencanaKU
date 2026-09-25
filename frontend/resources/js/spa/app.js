@@ -111,6 +111,59 @@ const esc = (value) =>
 
 const nl2br = (value) => esc(value).replace(/\n/g, '<br>');
 
+// Render sebuah nilai (array atau string) sebagai daftar <li>. Array
+// ditampilkan satu poin per item, sehingga tidak lagi tergabung menjadi
+// paragraf berkoma. String tetap ditampilkan apa adanya.
+function renderList(value, marker = '•', markerClass = 'text-slate-400') {
+    const items = Array.isArray(value)
+        ? value.filter(item => String(item ?? '').trim() !== '')
+        : (String(value ?? '').trim() !== '' ? [value] : []);
+
+    if (items.length === 0) {
+        return '';
+    }
+
+    return `<ul class="space-y-1.5">${items.map(item => `
+        <li class="flex items-start gap-2.5">
+            <span class="font-bold ${markerClass} shrink-0">${marker}</span>
+            <span>${nl2br(item)}</span>
+        </li>`).join('')}</ul>`;
+}
+
+// Versi markdown dari renderList untuk tab "Raw Markdown".
+function renderMarkdownList(value, ordered = false) {
+    const items = Array.isArray(value)
+        ? value.filter(item => String(item ?? '').trim() !== '')
+        : (String(value ?? '').trim() !== '' ? [value] : []);
+
+    if (items.length === 0) {
+        return '';
+    }
+
+    return items.map((item, i) => `${ordered ? `${i + 1}.` : '-'} ${item}`).join('\n');
+}
+
+// Apakah sebuah nilai (array/string) punya isi.
+function hasItems(value) {
+    return Array.isArray(value)
+        ? value.some(item => String(item ?? '').trim() !== '')
+        : String(value ?? '').trim() !== '';
+}
+
+// Section preview yang hanya dirender bila field-nya berisi. Menjaga
+// dokumen lama (tanpa field baru) tetap tampil rapi tanpa section kosong.
+function previewSection(number, title, innerHtml) {
+    if (!hasItems(innerHtml)) {
+        return '';
+    }
+
+    return `
+        <section class="space-y-2">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white font-heading">${number}. ${title}</h3>
+            <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">${innerHtml}</div>
+        </section>`;
+}
+
 function logout() {
     localStorage.removeItem(STORAGE_KEY);
     state.token = null;
@@ -1511,12 +1564,17 @@ function renderActiveDocumentContent(prd) {
         </section>
 
         <!-- 2. Tujuan & Target Pengguna -->
-        <section class="space-y-2">
+        <section class="space-y-3">
             <h3 class="text-sm font-bold text-slate-900 dark:text-white font-heading">2. Target Pengguna & Tujuan</h3>
-            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                <strong>Target User:</strong> ${nl2br(content.target_users || 'Mahasiswa, pelajar, dan kelompok studi akademis.')}<br>
-                <strong>Tujuan Utama:</strong> ${nl2br(content.objectives || 'Meningkatkan produktivitas belajar, mencegah keterlambatan tugas, dan mempermudah pembagian beban kerja kelompok.')}
-            </p>
+            <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed space-y-1.5">
+                <strong class="block text-slate-900 dark:text-white">Target User:</strong>
+                ${renderList(content.target_users && content.target_users.length ? content.target_users : ['Mahasiswa, pelajar, dan kelompok studi akademis.'], '•', 'text-[#5B4DF6]')}
+                <strong class="block text-slate-900 dark:text-white pt-1">Tujuan Utama:</strong>
+                ${renderList(content.objectives && content.objectives.length ? content.objectives : ['Meningkatkan produktivitas belajar, mencegah keterlambatan tugas, dan mempermudah pembagian beban kerja kelompok.'], '•', 'text-[#5B4DF6]')}
+                ${hasItems(content.user_stories) ? `
+                <strong class="block text-slate-900 dark:text-white pt-1">User Story:</strong>
+                ${renderList(content.user_stories, '▸', 'text-[#5B4DF6]')}` : ''}
+            </div>
         </section>
 
         <!-- 3. Functional Requirements -->
@@ -1534,6 +1592,11 @@ function renderActiveDocumentContent(prd) {
                     `
                 }
             </ul>
+            ${hasItems(content.acceptance_criteria) ? `
+            <div class="pt-1">
+                <strong class="block text-xs font-bold text-slate-900 dark:text-white mb-1.5">Kriteria Selesai (Acceptance Criteria):</strong>
+                ${renderList(content.acceptance_criteria, '✓', 'text-emerald-500')}
+            </div>` : ''}
         </section>
 
         <!-- 4. Non-Functional Requirements -->
@@ -1551,12 +1614,39 @@ function renderActiveDocumentContent(prd) {
             </ul>
         </section>
 
-        <!-- 5. Batasan & Pertanyaan Terbuka -->
-        <section class="space-y-2">
-            <h3 class="text-sm font-bold text-slate-900 dark:text-white font-heading">5. Batasan Sistem</h3>
-            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                ${nl2br(content.constraints || 'Tahap awal berfokus pada web app responsif, integrasi payment gateway belum disertakan pada fase MVP.')}
-            </p>
+        <!-- 5. Aturan & Logika Bisnis (opsional) -->
+        ${previewSection(5, 'Aturan &amp; Logika Bisnis', hasItems(content.business_rules) ? renderList(content.business_rules, '§', 'text-amber-500') : '')}
+
+        <!-- 6. Prioritas & Lingkup (opsional) -->
+        ${hasItems(content.mvp_scope) || hasItems(content.later_scope) ? `
+        <section class="space-y-3">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white font-heading">6. Prioritas &amp; Lingkup</h3>
+            ${hasItems(content.mvp_scope) ? `
+            <div>
+                <strong class="block text-xs font-bold text-slate-900 dark:text-white mb-1.5">Fase MVP (versi pertama):</strong>
+                ${renderList(content.mvp_scope, '★', 'text-[#5B4DF6]')}
+            </div>` : ''}
+            ${hasItems(content.later_scope) ? `
+            <div class="pt-1">
+                <strong class="block text-xs font-bold text-slate-900 dark:text-white mb-1.5">Ditunda (versi berikutnya):</strong>
+                ${renderList(content.later_scope, '○', 'text-slate-400')}
+            </div>` : ''}
+        </section>` : ''}
+
+        <!-- 7. Data yang Disimpan (opsional) -->
+        ${previewSection(7, 'Data yang Disimpan', hasItems(content.data_entities) ? renderList(content.data_entities, '▦', 'text-[#5B4DF6]') : '')}
+
+        <!-- 8. Batasan & Kondisi Khusus -->
+        <section class="space-y-3">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white font-heading">8. Batasan Sistem</h3>
+            <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                ${renderList(content.constraints && content.constraints.length ? content.constraints : ['Tahap awal berfokus pada web app responsif, integrasi payment gateway belum disertakan pada fase MVP.'])}
+            </div>
+            ${hasItems(content.edge_cases) ? `
+            <div class="pt-1">
+                <strong class="block text-xs font-bold text-slate-900 dark:text-white mb-1.5">Kondisi Khusus (Edge Case):</strong>
+                ${renderList(content.edge_cases, '!', 'text-rose-500')}
+            </div>` : ''}
         </section>
     </div>`;
 }
@@ -1585,17 +1675,42 @@ function generateMarkdown(prd) {
 ${c.background || ''}
 
 ### 2. Tujuan & Target User
-- **Target User:** ${c.target_users || ''}
-- **Tujuan:** ${c.objectives || ''}
+**Target User:**
+${renderMarkdownList(c.target_users)}
+
+**Tujuan:**
+${renderMarkdownList(c.objectives)}
+${hasItems(c.user_stories) ? `
+**User Story:**
+${renderMarkdownList(c.user_stories)}` : ''}
 
 ### 3. Functional Requirements
-${(c.functional_requirements || []).map((r, i) => `${i+1}. ${r}`).join('\n')}
+${renderMarkdownList(c.functional_requirements, true)}
+${hasItems(c.acceptance_criteria) ? `
+**Kriteria Selesai (Acceptance Criteria):**
+${renderMarkdownList(c.acceptance_criteria)}` : ''}
 
 ### 4. Non-Functional Requirements
-${(c.non_functional_requirements || []).map(r => `- ${r}`).join('\n')}
+${renderMarkdownList(c.non_functional_requirements)}
+${hasItems(c.business_rules) ? `
+### 5. Aturan & Logika Bisnis
+${renderMarkdownList(c.business_rules)}` : ''}
+${hasItems(c.mvp_scope) || hasItems(c.later_scope) ? `
+### 6. Prioritas & Lingkup
+**Fase MVP:**
+${renderMarkdownList(c.mvp_scope)}
 
-### 5. Batasan
-${c.constraints || ''}
+**Ditunda:**
+${renderMarkdownList(c.later_scope)}` : ''}
+${hasItems(c.data_entities) ? `
+### 7. Data yang Disimpan
+${renderMarkdownList(c.data_entities)}` : ''}
+
+### 8. Batasan
+${renderMarkdownList(c.constraints)}
+${hasItems(c.edge_cases) ? `
+**Kondisi Khusus (Edge Case):**
+${renderMarkdownList(c.edge_cases)}` : ''}
 `;
 }
 

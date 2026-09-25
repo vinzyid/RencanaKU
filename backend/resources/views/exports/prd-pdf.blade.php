@@ -24,9 +24,16 @@
             'background' => 'Latar Belakang',
             'objectives' => 'Tujuan',
             'target_users' => 'Target User',
+            'user_stories' => 'User Story',
             'functional_requirements' => 'Requirement Fungsional',
+            'acceptance_criteria' => 'Kriteria Selesai (Acceptance Criteria)',
             'non_functional_requirements' => 'Requirement Non-Fungsional',
+            'business_rules' => 'Aturan & Logika Bisnis',
+            'mvp_scope' => 'Lingkup MVP',
+            'later_scope' => 'Ditunda (Versi Berikutnya)',
+            'data_entities' => 'Data yang Disimpan',
             'constraints' => 'Batasan',
+            'edge_cases' => 'Kondisi Khusus (Edge Case)',
             'open_questions' => 'Pertanyaan Terbuka',
         ];
     @endphp

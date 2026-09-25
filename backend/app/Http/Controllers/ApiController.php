@@ -310,6 +310,13 @@ class ApiController extends Controller
 
     private const MAX_CLARIFICATION_ROUNDS = 2;
 
+    /**
+     * Batas putaran kontradiksi. Setelah melewati batas ini, sisa kontradiksi
+     * dianggap selesai agar alur tidak berputar tanpa henti (sebelumnya
+     * kontradiksi tidak punya batas, sehingga bisa terjadi loop tak berujung).
+     */
+    private const MAX_CONTRADICTION_ROUNDS = 3;
+
     /** Percobaan ulang transaksi saat deadlock (deteksi otomatis oleh Laravel). */
     private const DB_TRANSACTION_ATTEMPTS = 3;
 
@@ -467,6 +474,13 @@ class ApiController extends Controller
 
         $nextContradiction = $version->contradictionFlags()->whereNull('resolution')->first();
 
+        // Batas putaran tercapai -> hentikan interogasi agar tidak berputar
+        // tanpa henti. Sisa kontradiksi dianggap telah diselesaikan.
+        if ($nextContradiction && $this->contradictionRounds($project) >= self::MAX_CONTRADICTION_ROUNDS) {
+            $this->resolveRemainingContradictions($project);
+            $nextContradiction = null;
+        }
+
         if ($nextContradiction) {
             $project->messages()->create([
                 'sender' => 'ai',
@@ -484,6 +498,30 @@ class ApiController extends Controller
             'quick_replies' => ['Tampilkan dokumen lengkap'],
             'related_prd_version_id' => $version->id,
         ]);
+    }
+
+    /**
+     * Berapa putaran kontradiksi yang sudah dilewati proyek ini, dihitung dari
+     * jumlah versi yang memiliki flag kontradiksi.
+     */
+    private function contradictionRounds(Project $project): int
+    {
+        return (int) $project->prdVersions()
+            ->whereHas('contradictionFlags')
+            ->count();
+    }
+
+    /**
+     * Tandai seluruh kontradiksi yang belum terselesaikan pada proyek ini
+     * sebagai selesai. Dipakai saat batas putaran tercapai agar alur dapat
+     * berlanjut dan tidak ada kontradiksi yang menggantung selamanya.
+     */
+    private function resolveRemainingContradictions(Project $project): void
+    {
+        ContradictionFlag::query()
+            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $project->id))
+            ->whereNull('resolution')
+            ->update(['resolution' => 'auto_resolved']);
     }
 
     private function handleFreeRevision(Project $project, PrdVersion $latest, string $content): void
@@ -561,6 +599,12 @@ class ApiController extends Controller
             ]);
         }
 
+        $knownContradictionCodes = ContradictionFlag::query()
+            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $version->project_id))
+            ->pluck('code')
+            ->filter()
+            ->all();
+
         $knownContradictions = ContradictionFlag::query()
             ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $version->project_id))
             ->get()
@@ -568,13 +612,16 @@ class ApiController extends Controller
             ->all();
 
         foreach ($this->generator->detectContradictions($content) as $contradiction) {
+            $code = $contradiction['code'] ?? null;
             $signature = mb_strtolower($contradiction['requirement_a'].'||'.$contradiction['requirement_b']);
 
-            if (in_array($signature, $knownContradictions, true)) {
+            // Sudah pernah muncul (kode stabil sama) atau teks identik -> lewati.
+            if (($code && in_array($code, $knownContradictionCodes, true)) || in_array($signature, $knownContradictions, true)) {
                 continue;
             }
 
             $version->contradictionFlags()->create([
+                'code' => $code,
                 'requirement_a' => $contradiction['requirement_a'],
                 'requirement_b' => $contradiction['requirement_b'],
                 'explanation' => $contradiction['explanation'],
@@ -718,9 +765,16 @@ class ApiController extends Controller
             'background' => 'Latar Belakang',
             'objectives' => 'Tujuan',
             'target_users' => 'Target User',
+            'user_stories' => 'User Story',
             'functional_requirements' => 'Requirement Fungsional',
+            'acceptance_criteria' => 'Kriteria Selesai (Acceptance Criteria)',
             'non_functional_requirements' => 'Requirement Non-Fungsional',
+            'business_rules' => 'Aturan & Logika Bisnis',
+            'mvp_scope' => 'Lingkup MVP',
+            'later_scope' => 'Ditunda (Versi Berikutnya)',
+            'data_entities' => 'Data yang Disimpan',
             'constraints' => 'Batasan',
+            'edge_cases' => 'Kondisi Khusus (Edge Case)',
             'open_questions' => 'Pertanyaan Terbuka',
         ];
 

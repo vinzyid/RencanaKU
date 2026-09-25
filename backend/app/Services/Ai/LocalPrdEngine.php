@@ -20,6 +20,10 @@ class LocalPrdEngine
     public function respond(string $userPrompt): array
     {
         // Deteksi mode berdasar tag yang disisipkan oleh PrdGenerator.
+        if (str_contains($userPrompt, '[MODE:revise]')) {
+            return $this->revise($userPrompt);
+        }
+
         if (str_contains($userPrompt, '[MODE:ambiguity]')) {
             return ['ambiguities' => $this->detectAmbiguities($userPrompt)];
         }
@@ -29,6 +33,147 @@ class LocalPrdEngine
         }
 
         return $this->buildPrd($userPrompt);
+    }
+
+    /**
+     * Mode revisi pada fallback lokal: JANGAN membangun ulang PRD dari nol
+     * (itu akan menghancurkan dokumen yang sudah ada). Cukup pertahankan PRD
+     * lama apa adanya, lalu catat instruksi revisi pada pertanyaan terbuka
+     * agar bisa ditindaklanjuti/diisi manual.
+     *
+     * Sebelum perbaikan, revisi yang jatuh ke engine lokal menghasilkan PRD
+     * generic baru (judulnya berasal dari instruksi, mis. "Selesaikan
+     * kontradiksi antara ..."), sehingga dokumen pengguna rusak.
+     */
+    public function revise(string $userPrompt): array
+    {
+        $prd = $this->extractPrd($userPrompt);
+        $instruction = $this->extractInstruction($userPrompt);
+
+        if (! $prd) {
+            // Tidak ada PRD lama yang bisa dipertahankan -> bangun baru.
+            return $this->buildPrd($userPrompt);
+        }
+
+        $prd = $this->normalizePrdShape($prd);
+
+        if ($instruction !== '') {
+            $note = "Catatan revisi (belum diterapkan otomatis): {$instruction}";
+            $existing = $prd['open_questions'] ?? [];
+            if (! in_array($note, $existing, true)) {
+                $existing[] = $note;
+            }
+            $prd['open_questions'] = array_values($existing);
+        }
+
+        return $prd;
+    }
+
+    /**
+     * Ambil objek PRD dari tag [PRD:...]. Isinya bisa berupa JSON (bila
+     * dikirim sebagai JSON) atau teks ber-tag "FIELD: nilai" (format yang
+     * dikirim PrdGenerator lewat prdToText()).
+     */
+    private function extractPrd(string $prompt): ?array
+    {
+        if (! preg_match('/\[PRD:([\s\S]*)\]$/u', trim($prompt), $m)) {
+            return null;
+        }
+
+        $raw = trim($m[1]);
+
+        // Bentuk JSON.
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        // Bentuk teks ber-tag.
+        return $this->parsePrdText($raw);
+    }
+
+    /**
+     * Parse teks PRD ber-tag ("OBJECTIVES: a; b") menjadi array terstruktur.
+     */
+    private function parsePrdText(string $text): ?array
+    {
+        $map = [
+            'TITLE' => 'title',
+            'IDE AWAL PENGGUNA' => 'source_prompt',
+            'BACKGROUND' => 'background',
+            'OBJECTIVES' => 'objectives',
+            'TARGET_USERS' => 'target_users',
+            'FUNCTIONAL_REQUIREMENTS' => 'functional_requirements',
+            'NON_FUNCTIONAL_REQUIREMENTS' => 'non_functional_requirements',
+            'BUSINESS_RULES' => 'business_rules',
+            'USER_STORIES' => 'user_stories',
+            'ACCEPTANCE_CRITERIA' => 'acceptance_criteria',
+            'MVP_SCOPE' => 'mvp_scope',
+            'LATER_SCOPE' => 'later_scope',
+            'DATA_ENTITIES' => 'data_entities',
+            'EDGE_CASES' => 'edge_cases',
+            'CONSTRAINTS' => 'constraints',
+        ];
+
+        $result = [];
+        foreach (explode("\n", $text) as $line) {
+            if (! preg_match('/^([A-Z_ ]+):\s*(.*)$/u', trim($line), $m)) {
+                continue;
+            }
+            $key = $map[trim($m[1])] ?? null;
+            if (! $key) {
+                continue;
+            }
+            $value = trim($m[2]);
+            if ($value === '') {
+                continue;
+            }
+            // Field daftar dipisah "; ".
+            $result[$key] = in_array($key, ['title', 'background', 'source_prompt'], true)
+                ? $value
+                : array_values(array_filter(array_map('trim', explode(';', $value)), fn ($i) => $i !== ''));
+        }
+
+        return $result ?: null;
+    }
+
+    /**
+     * Ambil teks instruksi dari tag [PROMPT:...] bila ada.
+     */
+    private function extractInstruction(string $prompt): string
+    {
+        if (preg_match('/\[PROMPT:([\s\S]*?)\]/u', $prompt, $m)) {
+            return trim($m[1]);
+        }
+
+        return '';
+    }
+
+    /**
+     * Pastikan bentuk PRD lengkap (semua field ada) agar kontrak data konsisten.
+     */
+    private function normalizePrdShape(array $prd): array
+    {
+        $list = fn ($v) => is_array($v) ? array_values(array_filter($v, fn ($i) => trim((string) $i) !== '')) : (trim((string) $v) !== '' ? [$v] : []);
+
+        return [
+            'title' => (string) ($prd['title'] ?? 'Proyek Baru'),
+            'background' => (string) ($prd['background'] ?? ''),
+            'objectives' => $list($prd['objectives'] ?? []),
+            'target_users' => $list($prd['target_users'] ?? []),
+            'functional_requirements' => $list($prd['functional_requirements'] ?? []),
+            'non_functional_requirements' => $list($prd['non_functional_requirements'] ?? []),
+            'business_rules' => $list($prd['business_rules'] ?? []),
+            'user_stories' => $list($prd['user_stories'] ?? []),
+            'acceptance_criteria' => $list($prd['acceptance_criteria'] ?? []),
+            'mvp_scope' => $list($prd['mvp_scope'] ?? []),
+            'later_scope' => $list($prd['later_scope'] ?? []),
+            'data_entities' => $list($prd['data_entities'] ?? []),
+            'edge_cases' => $list($prd['edge_cases'] ?? []),
+            'constraints' => $list($prd['constraints'] ?? []),
+            'open_questions' => $list($prd['open_questions'] ?? []),
+            'source_prompt' => (string) ($prd['source_prompt'] ?? ''),
+        ];
     }
 
     public function buildPrd(string $prompt): array
@@ -51,6 +196,25 @@ class LocalPrdEngine
                 'Data pengguna terlindungi; akses tiap resource dibatasi berdasarkan kepemilikan akun.',
                 'Waktu respons operasi utama maksimal 3 detik pada kondisi normal.',
                 'Sistem tetap berfungsi (dengan pesan yang jelas) ketika layanan eksternal gagal.',
+            ],
+            'business_rules' => $this->businessRules($prompt),
+            'user_stories' => $this->userStories($subject),
+            'acceptance_criteria' => [
+                'Setiap fungsi utama dapat dijalankan end-to-end tanpa error pada alur normal.',
+                'Input tidak valid ditolak dengan pesan yang jelas dalam Bahasa Indonesia.',
+                'Data yang dibuat dapat dilihat kembali setelah disimpan.',
+            ],
+            'mvp_scope' => $this->functionalRequirements($prompt),
+            'later_scope' => [
+                'Integrasi layanan pihak ketiga (pembayaran/notifikasi).',
+                'Kolaborasi multi-pengguna secara real-time.',
+                'Laporan/analitik lanjutan.',
+            ],
+            'data_entities' => $this->dataEntities($prompt),
+            'edge_cases' => [
+                'Pengguna mengirim input kosong atau hanya spasi.',
+                'Layanan eksternal (AI/jaringan) tidak tersedia saat diminta.',
+                'Data dalam jumlah besar tetap dapat ditampilkan tanpa memuat semuanya sekaligus.',
             ],
             'constraints' => [
                 'Ruang lingkup berhenti pada dokumen kebutuhan (PRD), tidak mencakup pembangunan kode.',
@@ -240,6 +404,68 @@ class LocalPrdEngine
         $users[] = 'Pengguna umum yang membutuhkan solusi sesuai ide awal.';
 
         return array_values(array_unique($users));
+    }
+
+    private function businessRules(string $prompt): array
+    {
+        $text = mb_strtolower($this->stripTags($prompt));
+        $rules = [
+            'Setiap perubahan data harus disimpan beserta waktu pembuatannya, agar riwayat dapat ditelusuri.',
+            'Operasi yang bergantung pada data pengguna wajib memeriksa kepemilikan/kewenangan data tersebut.',
+            'Input yang tidak valid harus ditolak dengan pesan yang jelas, bukan disimpan dalam keadaan salah.',
+        ];
+
+        // Aturan spesifik domain (heuristik). Lebih dari satu bisa cocok.
+        if (preg_match('/kalkulator|hitung|rumus|harga|bep|laba|margin|biaya/u', $text)) {
+            $rules[] = 'Harga jual = biaya pokok x (1 + margin persen).';
+            $rules[] = 'Laba/rugi = total pemasukan - total pengeluaran.';
+            $rules[] = 'Titik impas (unit) = biaya tetap / (harga jual per unit - biaya variabel per unit).';
+        }
+        if (preg_match('/kasir|transaksi|penjualan|jual|beli|stok|gudang/u', $text)) {
+            $rules[] = 'Stok berkurang otomatis setiap transaksi penjualan berhasil dicatat.';
+            $rules[] = 'Total transaksi dihitung dari jumlah x harga satuan tiap item.';
+        }
+        if (preg_match('/tugas|deadline|jadwal|kalender|reminder|pengingat/u', $text)) {
+            $rules[] = 'Data yang melewati tenggat ditandai sebagai terlambat secara otomatis.';
+            $rules[] = 'Pengingat hanya dikirim untuk data yang belum selesai.';
+        }
+        if (preg_match('/chat|pesan|komen|komentar|diskusi|forum/u', $text)) {
+            $rules[] = 'Pesan diurutkan berdasarkan waktu kirim secara menaik.';
+            $rules[] = 'Pengguna hanya dapat mengubah/menghapus pesan miliknya sendiri.';
+        }
+        if (preg_match('/kursus|belajar|materi|kuis|ujian|nilai/u', $text)) {
+            $rules[] = 'Nilai akhir dihitung dari akumulasi komponen penilaian yang ditentukan.';
+            $rules[] = 'Materi hanya dapat diakses oleh pengguna yang terdaftar pada kelas tersebut.';
+        }
+
+        return array_values(array_unique($rules));
+    }
+
+    private function userStories(string $subject): array
+    {
+        return [
+            "Sebagai pengguna, saya ingin memakai {$subject} untuk menyelesaikan kebutuhan utama saya, agar pekerjaan menjadi lebih cepat dan mudah.",
+            'Sebagai pengguna, saya ingin melihat kembali data yang pernah saya buat, agar bisa menjadi rujukan di kemudian hari.',
+            'Sebagai pengguna, saya ingin mendapat pesan yang jelas ketika ada kesalahan input, agar saya tahu cara memperbaikinya.',
+        ];
+    }
+
+    private function dataEntities(string $prompt): array
+    {
+        $text = mb_strtolower($this->stripTags($prompt));
+        $entities = [
+            'Pengguna: identitas akun dan kredensial login.',
+            'Data utama aplikasi: entri yang dibuat dan dikelola pengguna.',
+        ];
+
+        if (preg_match('/kasir|transaksi|jual|beli|penjualan/u', $text)) {
+            $entities[] = 'Transaksi: item, jumlah, harga, total, waktu.';
+        }
+        if (preg_match('/kasir|hitung|kalkulator|laba|bep|harga/u', $text)) {
+            $entities[] = 'Riwayat perhitungan: jenis, input, hasil, waktu.';
+        }
+
+        return array_values(array_unique($entities));
     }
 
     private function functionalRequirements(string $prompt): array

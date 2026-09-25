@@ -137,6 +137,10 @@ class AiGateway
                     ['role' => 'user', 'content' => $userPrompt],
                 ],
                 'temperature' => 0.4,
+                // Batas token keluaran. Tanpa ini, sebagian gateway memakai
+                // default kecil sehingga JSON PRD terpotong di tengah dan
+                // dianggap tidak valid.
+                'max_tokens' => (int) env('AI_MAX_TOKENS', 4096),
             ]);
 
         $response->throw();
@@ -202,10 +206,76 @@ class AiGateway
 
         $decoded = json_decode($clean, true);
 
-        if (! is_array($decoded)) {
-            throw new \RuntimeException('respons LLM bukan JSON valid');
+        if (is_array($decoded)) {
+            return $decoded;
         }
 
-        return $decoded;
+        // Percobaan penyelamatan: keluaran bisa terpotong di tengah (mis. kena
+        // batas token). Coba ambil objek JSON terbesar yang masih utuh.
+        $salvaged = $this->salvageTruncatedJson($clean);
+
+        if (is_array($salvaged)) {
+            Log::warning('[AiGateway] JSON terpotong, berhasil diselamatkan sebagian');
+
+            return $salvaged;
+        }
+
+        throw new \RuntimeException('respons LLM bukan JSON valid');
+    }
+
+    /**
+     * Selamatkan JSON yang terpotong dengan menutup kurung yang belum tertutup.
+     */
+    private function salvageTruncatedJson(string $json): ?array
+    {
+        $start = strpos($json, '{');
+        if ($start === false) {
+            return null;
+        }
+
+        $json = substr($json, $start);
+        $stack = [];
+        $inString = false;
+        $escaped = false;
+
+        for ($i = 0, $len = strlen($json); $i < $len; $i++) {
+            $ch = $json[$i];
+
+            if ($escaped) {
+                $escaped = false;
+                continue;
+            }
+            if ($ch === '\\') {
+                $escaped = true;
+                continue;
+            }
+            if ($ch === '"') {
+                $inString = ! $inString;
+                continue;
+            }
+            if ($inString) {
+                continue;
+            }
+
+            if ($ch === '{' || $ch === '[') {
+                $stack[] = $ch;
+            } elseif ($ch === '}' || $ch === ']') {
+                array_pop($stack);
+            }
+        }
+
+        if ($inString) {
+            $json .= '"';
+        }
+
+        // Tutup struktur yang belum selesai, dari dalam ke luar.
+        while ($stack) {
+            $open = array_pop($stack);
+            $json .= $open === '{' ? '}' : ']';
+        }
+
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 }
