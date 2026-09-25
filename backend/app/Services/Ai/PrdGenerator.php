@@ -82,6 +82,11 @@ class PrdGenerator
         - "data_entities": data utama yang disimpan beserta field pentingnya. Sesuaikan dengan domain (contoh kasir: "Transaksi: item, jumlah, total, waktu"; contoh tugas: "Tugas: judul, tenggat, status"). 
         - "edge_cases": kondisi batas/kondisi tidak biasa yang harus ditangani, sesuai domain ide (contoh umum: "input kosong", "data tidak ditemukan"; untuk kalkulator boleh "pembagian dengan nol").
         Requirement harus spesifik, terukur bila memungkinkan, dan tidak saling bertentangan.
+
+        PENTING — tetap setia pada permintaan pengguna:
+        - JANGAN menambah fitur yang tidak diminta atau tidak tersirat dari ide pengguna (mis. login/autentikasi, cloud, multi-bahasa, notifikasi, laporan, ekspor PDF) kecuali pengguna menyebutkannya.
+        - JANGAN mencantumkan angka/klaim teknis yang tidak diminta dan tidak bisa dipastikan dari ide (mis. "uptime 99%", "enkripsi AES-256", "1000 pengguna bersamaan", "SLA"). Cukup tulis kebutuhan yang wajar dan relevan.
+        - Fokus pada kebutuhan inti sesuai ide. Bila ragu, lebih baik lebih sedikit dan benar daripada banyak tapi mengada-ada.
         SYS;
 
         $user = "[MODE:generate]\n[PROMPT:{$prompt}]";
