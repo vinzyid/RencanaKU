@@ -148,12 +148,20 @@ Setelah `migrate --seed`:
 ### Development (hot reload)
 
 ```bash
-# Terminal 1 (dari folder backend)
+# Terminal 1 (dari folder backend) — server web
 php artisan serve
 
-# Terminal 2 (dari folder frontend)
+# Terminal 2 (dari folder backend) — worker queue (WAJIB untuk menyusun PRD)
+php artisan queue:work
+
+# Terminal 3 (dari folder frontend) — Vite hot reload
 npm run dev
 ```
+
+> Pemrosesan PRD (panggilan AI) berjalan di background queue. **Tanpa worker
+> `php artisan queue:work` yang hidup, draft PRD tidak akan pernah selesai
+> disusun.** Request HTTP hanya menyimpan pesan lalu kembali cepat; UI
+> memantau progres lewat status proyek.
 
 > Jika baru mengubah config atau `.env`, jalankan `php artisan config:clear` lalu hard-refresh browser (`Ctrl + Shift + R`).
 
@@ -348,12 +356,20 @@ Setelah `migrate --seed`:
 ### Development (hot reload)
 
 ```bash
-# Terminal 1 (dari folder backend)
+# Terminal 1 (dari folder backend) — server web
 php artisan serve
 
-# Terminal 2 (dari folder frontend)
+# Terminal 2 (dari folder backend) — worker queue (WAJIB untuk menyusun PRD)
+php artisan queue:work
+
+# Terminal 3 (dari folder frontend) — Vite hot reload
 npm run dev
 ```
+
+> Pemrosesan PRD (panggilan AI) berjalan di background queue. **Tanpa worker
+> `php artisan queue:work` yang hidup, draft PRD tidak akan pernah selesai
+> disusun.** Request HTTP hanya menyimpan pesan lalu kembali cepat; UI
+> memantau progres lewat status proyek.
 
 > Jika baru mengubah config atau `.env`, jalankan `php artisan config:clear` lalu hard-refresh browser (`Ctrl + Shift + R`).
 

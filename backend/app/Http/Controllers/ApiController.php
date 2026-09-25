@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessProjectMessage;
 use App\Models\AmbiguityFlag;
 use App\Models\ContradictionFlag;
 use App\Models\PrdVersion;
@@ -99,7 +100,7 @@ class ApiController extends Controller
         ]);
 
         if (! empty($data['prompt'])) {
-            $this->processUserMessage($project, $data['prompt']);
+            $this->dispatchProcessing($project, $data['prompt']);
         }
 
         return response()->json($this->projectPayload($project), 201);
@@ -147,9 +148,9 @@ class ApiController extends Controller
             'content' => 'required|string|min:1|max:5000',
         ]);
 
-        $this->processUserMessage($project, trim($data['content']));
+        $this->dispatchProcessing($project, trim($data['content']));
 
-        return response()->json($this->projectPayload($project), 201);
+        return response()->json($this->projectPayload($project), 202);
     }
 
     // ---------------------------------------------------------------------
@@ -253,8 +254,11 @@ class ApiController extends Controller
      * pesan user tersimpan tanpa balasan AI. Baris proyek dikunci
      * (lockForUpdate) agar pesan-pesan yang datang bersamaan diproses
      * berurutan, bukan saling menimpa versi.
+     *
+     * Metode ini bersifat publik karena dipanggil dari background job
+     * ProcessProjectMessage (Opsi 3 - queue), bukan langsung dari request HTTP.
      */
-    private function processUserMessage(Project $project, string $content): void
+    public function processUserMessage(Project $project, string $content): void
     {
         // Semua pemakaian token dalam alur ini diatribusikan ke user & proyek.
         $this->generator->setContext($project->user_id, $project->id);
@@ -610,6 +614,20 @@ class ApiController extends Controller
     }
 
     /**
+     * Tandai proyek sedang diproses lalu jalankan pemrosesan pesan di
+     * background job (Opsi 3 - queue). Request HTTP tidak menunggu AI.
+     */
+    private function dispatchProcessing(Project $project, string $content): void
+    {
+        $project->forceFill([
+            'prd_status' => 'processing',
+            'prd_error' => null,
+        ])->save();
+
+        ProcessProjectMessage::dispatch($project->id, $content);
+    }
+
+    /**
      * Payload lengkap proyek: thread chat + PRD terbaru + flag + versi + stage.
      */
     private function projectPayload(Project $project): array
@@ -634,6 +652,8 @@ class ApiController extends Controller
                 'contradictions' => 0,
                 'can_finalize' => false,
             ],
+            'prd_status' => $project->prd_status ?? 'idle',
+            'prd_error' => $project->prd_error,
         ];
     }
 
@@ -655,6 +675,7 @@ class ApiController extends Controller
                 'ai_provider' => $latest->ai_provider,
             ] : null,
             'stage' => $this->flow->stage($latest),
+            'prd_status' => $project->prd_status ?? 'idle',
         ];
     }
 

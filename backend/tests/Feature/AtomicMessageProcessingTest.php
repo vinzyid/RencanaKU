@@ -37,7 +37,7 @@ class AtomicMessageProcessingTest extends TestCase
             'content' => 'Saya mau aplikasi kasir warung yang cepat dan mudah.',
         ]);
 
-        $response->assertStatus(201);
+        $response->assertStatus(202);
 
         // Pesan user + balasan AI tersimpan, satu versi PRD terbentuk.
         $this->assertSame(2, $project->messages()->count());
@@ -73,12 +73,12 @@ class AtomicMessageProcessingTest extends TestCase
 
         $this->actingAs($user, 'sanctum')->postJson("/api/projects/{$project->id}/messages", [
             'content' => 'Aplikasi kasir warung.',
-        ])->assertStatus(201);
+        ])->assertStatus(202);
 
         // Jawab pertanyaan klarifikasi (bila ada) agar sampai ke revisi bebas.
         $this->actingAs($user, 'sanctum')->postJson("/api/projects/{$project->id}/messages", [
             'content' => 'Cukup cepat, untuk saya sendiri, sangat simpel.',
-        ])->assertStatus(201);
+        ])->assertStatus(202);
 
         $this->assertSame(2, $project->prdVersions()->count());
         $this->assertSame(2, (int) PrdVersion::max('version_number'));

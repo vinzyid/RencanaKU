@@ -35,6 +35,9 @@ const state = {
     showExportModal: false,
     exportFormat: 'md',
     isAiTyping: false,
+    prdStatus: 'idle', // 'idle' | 'processing'
+    prdError: null,
+    pollTimer: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -1780,12 +1783,47 @@ async function handleSendMessage(root, content) {
             body: JSON.stringify({ content }),
         });
         applyProjectPayload(data);
+        // Pemrosesan PRD kini berjalan di background (queue). Pantau sampai selesai.
+        if (state.prdStatus === 'processing') {
+            render(root);
+            await pollProjectUntilIdle(root);
+        }
     } catch (err) {
         state.messages = state.messages.filter(m => !String(m.id).startsWith('tmp-'));
         alert(err.message);
     } finally {
         state.isAiTyping = false;
         render(root);
+    }
+}
+
+/**
+ * Pantau status proyek sampai pemrosesan PRD di background selesai.
+ * Menggantikan pola lama "tunggu satu respons" (Opsi 3 - queue).
+ */
+async function pollProjectUntilIdle(root) {
+    const projectId = state.project.id;
+    const intervalMs = 2000;
+    const maxMs = 5 * 60 * 1000;
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < maxMs) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+
+        // Batal bila user berpindah proyek/tampilan saat menunggu.
+        if (!state.project || state.project.id !== projectId) return;
+
+        try {
+            const data = await api(`/projects/${projectId}`);
+            applyProjectPayload(data);
+
+            if (state.prdStatus !== 'processing') {
+                if (state.prdError) alert(state.prdError);
+                return;
+            }
+        } catch (err) {
+            // Gangguan jaringan sesaat: coba lagi sampai batas waktu.
+        }
     }
 }
 
@@ -1807,6 +1845,8 @@ function applyProjectPayload(data) {
     state.diff = data.diff || [];
     state.stage = data.stage || 'input_idea';
     state.validation = data.validation || { ambiguities: 0, contradictions: 0, can_finalize: false };
+    state.prdStatus = data.prd_status || data.project?.prd_status || 'idle';
+    state.prdError = data.prd_error || null;
 }
 
 function stageLabel(id) {
@@ -1864,6 +1904,15 @@ document.addEventListener('submit', async (e) => {
             applyProjectPayload(data);
             state.view = 'project';
             render(document.getElementById('app'));
+
+            // Draft PRD disusun di background (queue) — pantau sampai selesai.
+            if (state.prdStatus === 'processing') {
+                state.isAiTyping = true;
+                render(document.getElementById('app'));
+                await pollProjectUntilIdle(document.getElementById('app'));
+                state.isAiTyping = false;
+                render(document.getElementById('app'));
+            }
         } catch (err) {
             errEl.textContent = err.message;
             submitBtn.disabled = false;

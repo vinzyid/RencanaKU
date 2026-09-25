@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Project extends Model
 {
-    protected $fillable = ['user_id', 'title'];
+    protected $fillable = ['user_id', 'title', 'prd_status', 'prd_error'];
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

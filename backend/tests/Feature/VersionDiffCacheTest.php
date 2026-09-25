@@ -31,11 +31,11 @@ class VersionDiffCacheTest extends TestCase
 
         $this->actingAs($user, 'sanctum')->postJson("/api/projects/{$project->id}/messages", [
             'content' => 'Aplikasi kasir warung.',
-        ])->assertStatus(201);
+        ])->assertStatus(202);
 
         $this->actingAs($user, 'sanctum')->postJson("/api/projects/{$project->id}/messages", [
             'content' => 'Cukup cepat, untuk saya sendiri, sangat simpel.',
-        ])->assertStatus(201);
+        ])->assertStatus(202);
 
         return $project->refresh();
     }
