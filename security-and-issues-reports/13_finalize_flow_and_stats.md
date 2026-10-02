@@ -182,11 +182,11 @@ Select-String -Path backend/.env.example -Pattern "AI_MAX_TOKENS"
 
 ## ✅ Checklist Perbaikan
 
-- [ ] 13.1 Tambah tombol Finalisasi + handler `POST /finalize` di UI
-- [ ] 13.1 Tampilkan badge "Final" & aktifkan stepper Export setelah final
-- [ ] 13.2 Ganti statistik hardcoded dengan panjang data asli (`?? 0`)
-- [ ] 13.3 Terapkan keputusan Opsi A atau B untuk export draft
-- [ ] 13.4 Tambah `AI_MAX_TOKENS` ke `.env.example` + README
+- [x] 13.1 Tambah tombol Finalisasi + handler `POST /finalize` di UI
+- [x] 13.1 Tampilkan badge "Final" & aktifkan stepper Export setelah final
+- [x] 13.2 Ganti statistik hardcoded dengan panjang data asli (`?? 0`)
+- [x] 13.3 Terapkan keputusan Opsi A atau B untuk export draft
+- [x] 13.4 Tambah `AI_MAX_TOKENS` ke `.env.example` + README
 
 ---
 

@@ -270,6 +270,7 @@ const icons = {
     google: `<svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.9C6.2 7.3 8.9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.3 14.7c-.2-.7-.4-1.5-.4-2.3 0-.9.2-1.7.4-2.4L1.6 7.1C.6 9.1 0 11.5 0 14s.6 4.9 1.6 6.9l3.7-2.9c0-.4 0-.8 0-3.3z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.8-2.1-6.7-5.1L1.6 16.1C3.5 19.9 7.4 23 12 23z"/></svg>`,
     github: `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>`,
     play: `<svg class="w-4 h-4 text-[#5B4DF6] inline-block" fill="currentColor" viewBox="0 0 20 20"><path d="M4.518 3.322a1 1 0 00-1.518.86v11.636a1 1 0 001.518.86l10-5.818a1 1 0 000-1.72l-10-5.818z" /></svg>`,
+    spinner: `<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`,
 };
 
 // ---------------------------------------------------------------------------
@@ -590,91 +591,103 @@ function renderAuth(root) {
     root.innerHTML = `
     <div class="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-white dark:bg-[#0B0D14] transition-colors">
         <!-- Left Side: Auth Form -->
-        <div class="lg:col-span-7 flex flex-col justify-between p-8 sm:p-14 lg:p-20">
-            <!-- Brand header -->
-            <div class="flex items-center justify-between">
-                <a href="#" id="auth-back-home" class="flex items-center gap-3">
-                    ${icons.brandLogo}
-                    <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white font-heading">RencanaKU</span>
+        <!-- Left Side: Auth Form -->
+        <div class="lg:col-span-7 flex flex-col min-h-screen lg:min-h-0 p-6 sm:p-10 lg:p-12 relative">
+            <!-- Top navigation -->
+            <div class="flex items-center justify-between w-full">
+                <a href="#" id="auth-back-home" class="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition group">
+                    <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Kembali ke Beranda
                 </a>
-                <button id="auth-theme-toggle" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                <button id="auth-theme-toggle" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                     ${state.theme === 'dark' ? icons.sun : icons.moon}
                 </button>
             </div>
 
-            <!-- Form Container -->
-            <div class="w-full max-w-md mx-auto my-10">
-                <div class="mb-8">
-                    <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2 font-heading">
-                        ${isRegister ? 'Buat akun RencanaKU' : 'Masuk ke akun kamu'}
-                    </h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
-                        ${isRegister ? 'Mulai rancang ide requirement kamu secara terstruktur.' : 'Lanjutkan perjalanan dari ide menjadi PRD yang nyata.'}
+            <!-- Middle Container -->
+            <div class="flex-1 flex flex-col justify-center items-center w-full py-10">
+                <div class="w-full max-w-md">
+                    <!-- Brand header -->
+                    <div class="flex items-center gap-3 mb-8">
+                        ${icons.brandLogo}
+                        <span class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-heading">RencanaKU</span>
+                    </div>
+
+                    <!-- Form Header -->
+                    <div class="mb-8">
+                        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2 font-heading">
+                            ${isRegister ? 'Buat akun RencanaKU' : 'Masuk ke akun kamu'}
+                        </h1>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">
+                            ${isRegister ? 'Mulai rancang ide requirement kamu secara terstruktur.' : 'Lanjutkan perjalanan dari ide menjadi PRD yang nyata.'}
+                        </p>
+                    </div>
+
+                    <form id="auth-form" class="space-y-4">
+                        ${isRegister ? `
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Nama Lengkap</label>
+                            <input name="name" type="text" placeholder="Abyan Bergas" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4DF6] transition">
+                        </div>` : ''}
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email</label>
+                            <input name="email" type="email" placeholder="nama@email.com" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4DF6] transition">
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
+                                ${!isRegister ? '<a href="#" id="auth-forgot-pwd" class="text-xs font-semibold text-[#5B4DF6] hover:underline">Lupa password?</a>' : ''}
+                            </div>
+                            <div class="relative">
+                                <input name="password" id="auth-password" type="password" placeholder="Masukkan password" required minlength="8" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4DF6] transition">
+                                <button type="button" id="toggle-pwd" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 text-xs font-semibold">Lihat</button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 pt-1">
+                            <input type="checkbox" id="remember" class="w-4 h-4 rounded text-[#5B4DF6] focus:ring-[#5B4DF6] border-slate-300">
+                            <label for="remember" class="text-xs text-slate-600 dark:text-slate-400 font-medium cursor-pointer">Ingat saya</label>
+                        </div>
+
+                        <p id="auth-error" class="text-xs text-rose-500 font-medium min-h-[1rem]"></p>
+
+                        <button type="submit" id="auth-submit-btn" class="w-full btn-primary py-3 text-sm font-bold shadow-lg shadow-indigo-500/25 flex justify-center items-center gap-2 transition">
+                            ${isRegister ? 'Daftar Sekarang' : 'Masuk'}
+                        </button>
+                    </form>
+
+                    <!-- Social divider -->
+                    <div class="relative my-6 text-center">
+                        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-800"></div></div>
+                        <span class="relative bg-white dark:bg-[#0B0D14] px-4 text-xs text-slate-400 font-medium">atau masuk dengan</span>
+                    </div>
+
+                    <!-- Social buttons -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="/oauth/google" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
+                            ${icons.google} Google
+                        </a>
+                        <a href="/oauth/github" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
+                            ${icons.github} GitHub
+                        </a>
+                    </div>
+
+                    <!-- Switch login/register -->
+                    <p class="text-center text-xs text-slate-500 dark:text-slate-400 mt-8">
+                        ${isRegister ? 'Sudah punya akun?' : 'Belum punya akun?'}
+                        <a href="#" id="auth-switch-mode" class="text-[#5B4DF6] font-bold hover:underline">
+                            ${isRegister ? 'Masuk sekarang' : 'Daftar sekarang'}
+                        </a>
                     </p>
                 </div>
-
-                <form id="auth-form" class="space-y-4">
-                    ${isRegister ? `
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Nama Lengkap</label>
-                        <input name="name" type="text" placeholder="Abyan Bergas" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4DF6] transition">
-                    </div>` : ''}
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email</label>
-                        <input name="email" type="email" placeholder="nama@email.com" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4DF6] transition">
-                    </div>
-
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
-                            ${!isRegister ? '<a href="#" id="auth-forgot-pwd" class="text-xs font-semibold text-[#5B4DF6] hover:underline">Lupa password?</a>' : ''}
-                        </div>
-                        <div class="relative">
-                            <input name="password" id="auth-password" type="password" placeholder="Masukkan password" required minlength="8" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4DF6] transition">
-                            <button type="button" id="toggle-pwd" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 text-xs font-semibold">Lihat</button>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 pt-1">
-                        <input type="checkbox" id="remember" class="w-4 h-4 rounded text-[#5B4DF6] focus:ring-[#5B4DF6] border-slate-300">
-                        <label for="remember" class="text-xs text-slate-600 dark:text-slate-400 font-medium cursor-pointer">Ingat saya</label>
-                    </div>
-
-                    <p id="auth-error" class="text-xs text-rose-500 font-medium min-h-[1rem]"></p>
-
-                    <button type="submit" id="auth-submit-btn" class="w-full btn-primary py-3 text-sm font-bold shadow-lg shadow-indigo-500/25">
-                        ${isRegister ? 'Daftar Sekarang' : 'Masuk'}
-                    </button>
-                </form>
-
-                <!-- Social divider -->
-                <div class="relative my-6 text-center">
-                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-800"></div></div>
-                    <span class="relative bg-white dark:bg-[#0B0D14] px-4 text-xs text-slate-400 font-medium">atau masuk dengan</span>
-                </div>
-
-                <!-- Social buttons -->
-                <div class="grid grid-cols-2 gap-3">
-                    <a href="/oauth/google" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
-                        ${icons.google} Google
-                    </a>
-                    <a href="/oauth/github" class="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
-                        ${icons.github} GitHub
-                    </a>
-                </div>
-
-                <!-- Switch login/register -->
-                <p class="text-center text-xs text-slate-500 dark:text-slate-400 mt-8">
-                    ${isRegister ? 'Sudah punya akun?' : 'Belum punya akun?'}
-                    <a href="#" id="auth-switch-mode" class="text-[#5B4DF6] font-bold hover:underline">
-                        ${isRegister ? 'Masuk sekarang' : 'Daftar sekarang'}
-                    </a>
-                </p>
             </div>
 
             <!-- Footer note -->
-            <div class="text-center text-[11px] text-slate-400">
+            <div class="text-center text-[11px] text-slate-400 w-full mt-auto">
                 &copy; 2026 RencanaKU. All rights reserved.
             </div>
         </div>
@@ -756,7 +769,7 @@ function renderAuth(root) {
         const submitBtn = root.querySelector('#auth-submit-btn');
         const errorEl = root.querySelector('#auth-error');
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Memproses...';
+        submitBtn.innerHTML = `${icons.spinner} <span>Memproses...</span>`;
         errorEl.textContent = '';
 
         const formData = new FormData(event.target);
@@ -804,9 +817,9 @@ async function renderWorkspaceShell(root) {
     root.innerHTML = `
     <div class="min-h-screen bg-[#F8F9FD] dark:bg-[#0B0D14] text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors">
         <!-- Sidebar Navigation -->
-        <aside class="w-full md:w-64 bg-white dark:bg-[#121624] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0">
+        <aside class="w-full md:w-64 bg-white dark:bg-[#121624] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 md:h-screen md:sticky md:top-0">
             <!-- Top brand & navigation -->
-            <div class="p-6">
+            <div class="p-5 overflow-y-auto">
                 <!-- Logo -->
                 <div class="flex items-center gap-3 mb-6">
                     ${icons.brandLogo}
@@ -843,34 +856,37 @@ async function renderWorkspaceShell(root) {
             </div>
 
             <!-- Bottom: Pro Plan Widget & User profile -->
-            <div class="p-6 space-y-4">
+            <div class="p-5 border-t border-slate-100 dark:border-slate-800/80 space-y-3 shrink-0">
                 <!-- Pro Plan Card -->
-                <div class="p-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-900/50">
+                <div class="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50/90 to-purple-50/70 dark:from-indigo-950/40 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-900/50 shadow-xs">
                     <div class="flex items-center gap-2 mb-1">
                         <span class="text-sm">👑</span>
                         <span class="text-xs font-bold text-slate-900 dark:text-white font-heading">Pro Plan</span>
                     </div>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mb-3">
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mb-2.5">
                         Buka semua fitur premium dan batas lebih tinggi.
                     </p>
-                    <button id="sidebar-upgrade-btn" class="w-full py-2 bg-[#5B4DF6] hover:bg-[#4E3FE3] text-white text-xs font-bold rounded-xl shadow-sm transition">
+                    <button id="sidebar-upgrade-btn" class="w-full py-2 bg-[#5B4DF6] hover:bg-[#4E3FE3] text-white text-xs font-bold rounded-xl shadow-xs transition">
                         Upgrade
                     </button>
                 </div>
 
-                <!-- User Bar -->
-                <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-[#5B4DF6] text-white flex items-center justify-center font-bold text-xs">
+                <!-- User Profile & Logout -->
+                <div class="p-2.5 rounded-2xl bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 shadow-xs">
+                    <div class="flex items-center gap-2.5 min-w-0 mb-2.5">
+                        <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-tr from-[#5B4DF6] to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                             ${userInitials}
                         </div>
-                        <div class="overflow-hidden">
-                            <div class="text-xs font-bold text-slate-900 dark:text-white truncate">${esc(userName)}</div>
-                            <div class="text-[11px] text-slate-400 truncate">${esc(userEmail)}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-bold text-slate-900 dark:text-white truncate" title="${esc(userName)}">${esc(userName)}</div>
+                            <div class="text-[11px] text-slate-400 dark:text-slate-400 truncate" title="${esc(userEmail)}">${esc(userEmail)}</div>
                         </div>
                     </div>
-                    <button id="btn-logout" title="Keluar" class="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    <button id="btn-logout" class="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 bg-white dark:bg-slate-800/80 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200/80 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-900/50 rounded-xl shadow-2xs transition group cursor-pointer" title="Keluar dari akun">
+                        <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-500 dark:text-slate-400 dark:group-hover:text-rose-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Keluar</span>
                     </button>
                 </div>
             </div>
@@ -916,6 +932,10 @@ async function renderWorkspaceShell(root) {
     // Bind Workspace Shell Events
     root.querySelector('#ws-theme-toggle').onclick = () => toggleTheme(root);
     root.querySelector('#btn-logout').onclick = async () => {
+        const btn = root.querySelector('#btn-logout');
+        btn.disabled = true;
+        btn.innerHTML = `${icons.spinner} <span>Memproses...</span>`;
+        
         try { await api('/logout', { method: 'POST' }); } catch {}
         logout();
         render(root);
@@ -1449,9 +1469,9 @@ function renderDocumentationView(root, container) {
     const isFinalized = prd.status === 'finalized';
 
     // Count statistics
-    const funcReqs = prd.content?.functional_requirements?.length || 12;
-    const nonFuncReqs = prd.content?.non_functional_requirements?.length || 5;
-    const userStories = 8;
+    const funcReqs = prd.content?.functional_requirements?.length ?? 0;
+    const nonFuncReqs = prd.content?.non_functional_requirements?.length ?? 0;
+    const userStories = prd.content?.user_stories?.length ?? 0;
 
     container.innerHTML = `
     <div class="space-y-6 max-w-6xl mx-auto">
@@ -1463,8 +1483,8 @@ function renderDocumentationView(root, container) {
                 </button>
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">${esc(project.title)}</h1>
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6]">
-                        Versi ${prd.version_number}
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${isFinalized ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600' : 'bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6]'}">
+                        Versi ${prd.version_number} ${isFinalized ? '(Final)' : ''}
                     </span>
                 </div>
                 <div class="text-xs text-slate-400">${timeAgo(prd.created_at)}</div>
@@ -1472,10 +1492,15 @@ function renderDocumentationView(root, container) {
 
             <!-- Action buttons: Share & Export -->
             <div class="flex items-center gap-3">
+                ${!isFinalized && can_finalize ? `
+                <button id="btn-finalize-prd" class="btn-primary text-xs px-4 py-2 font-bold flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 border-emerald-500 shadow-emerald-500/25 dark:bg-emerald-600 dark:hover:bg-emerald-700 transition">
+                    ${icons.check} <span>Finalisasi PRD</span>
+                </button>
+                ` : ''}
                 <button id="btn-share-prd" class="btn-secondary text-xs px-4 py-2 font-bold flex items-center gap-2">
                     ${icons.share} <span>Bagikan</span>
                 </button>
-                <button id="btn-open-export" class="btn-primary text-xs px-4 py-2 font-bold flex items-center gap-2">
+                <button id="btn-open-export" class="btn-primary text-xs px-4 py-2 font-bold flex items-center gap-2 ${!isFinalized ? 'opacity-50 cursor-not-allowed' : ''}" ${!isFinalized ? 'title="Finalisasi PRD terlebih dahulu untuk mengunduh"' : ''}>
                     ${icons.download} <span>Export ▾</span>
                 </button>
             </div>
@@ -1558,7 +1583,32 @@ function renderDocumentationView(root, container) {
         render(root);
     };
 
+    const btnFinalize = container.querySelector('#btn-finalize-prd');
+    if (btnFinalize) {
+        btnFinalize.onclick = async () => {
+            const originalHtml = btnFinalize.innerHTML;
+            btnFinalize.disabled = true;
+            btnFinalize.innerHTML = `${icons.spinner} <span>Memproses...</span>`;
+            try {
+                const data = await api(`/projects/${project.id}/finalize`, { method: 'POST' });
+                state.project = data.project;
+                state.prd = data.prd;
+                state.validation = data.validation;
+                state.stage = data.stage;
+                render(root);
+            } catch (err) {
+                alert(err.message || 'Gagal melakukan finalisasi PRD.');
+                btnFinalize.disabled = false;
+                btnFinalize.innerHTML = originalHtml;
+            }
+        };
+    }
+
     container.querySelector('#btn-open-export').onclick = () => {
+        if (!isFinalized) {
+            alert('Silakan finalisasi PRD terlebih dahulu sebelum melakukan export.');
+            return;
+        }
         state.showExportModal = true;
         render(root);
     };

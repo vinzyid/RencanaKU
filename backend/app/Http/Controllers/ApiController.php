@@ -221,6 +221,7 @@ class ApiController extends Controller
 
         $version = $project->prdVersions()->latest('version_number')->first();
         abort_if(! $version, 422, 'Belum ada PRD untuk diexport.');
+        abort_unless($version->status === 'finalized', 422, 'Finalisasi PRD sebelum mengunduh.');
 
         $content = $version->decodedContent();
         $slug = $this->slug($project->title);

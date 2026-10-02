@@ -1,4 +1,4 @@
-﻿# RencanaKU
+# RencanaKU
 
 **Platform Prompt-to-PRD Generator dengan Deteksi Ambiguitas & Kontradiksi.**
 
@@ -122,6 +122,7 @@ php artisan migrate --seed
 # 4. (Opsional) Isi API key AI di .env agar memakai LLM sungguhan
 #    OPENROUTER_API_KEY=...  (primary)
 #    GEMINI_API_KEY=...      (fallback)
+#    AI_MAX_TOKENS=4096      (batas keluaran token AI, naikkan bila PRD panjang terpotong)
 #    Tanpa key, sistem otomatis memakai generator lokal deterministik.
 
 # 5. Build asset frontend (dari folder frontend)
@@ -330,6 +331,7 @@ php artisan migrate --seed
 # 4. (Opsional) Isi API key AI di .env agar memakai LLM sungguhan
 #    OPENROUTER_API_KEY=...  (primary)
 #    GEMINI_API_KEY=...      (fallback)
+#    AI_MAX_TOKENS=4096      (batas keluaran token AI, naikkan bila PRD panjang terpotong)
 #    Tanpa key, sistem otomatis memakai generator lokal deterministik.
 
 # 5. Build asset frontend (dari folder frontend)
