@@ -34,6 +34,13 @@ const state = {
     showNewProjectModal: false,
     showExportModal: false,
     exportFormat: 'md',
+    settingsTab: 'profile', // 'profile' | 'preferences' | 'security'
+    showNotifPopup: false,
+    notifications: [
+        { id: 1, type: 'success', icon: '✅', title: 'Dokumen PRD Selesai', desc: 'Proyek terbaru Anda telah berhasil difinalisasi dan siap untuk diekspor ke PDF/Markdown.', timeAgo: 'Baru saja', isRead: false },
+        { id: 2, type: 'warning', icon: '⚠️', title: 'Ambiguitas Terdeteksi', desc: 'AI mendeteksi 2 poin requirement yang masih ambigu pada draft terbaru Anda. Mohon lakukan klarifikasi.', timeAgo: '2 jam yang lalu', isRead: false },
+        { id: 3, type: 'info', icon: '👋', title: 'Selamat Datang di RencanaKU', desc: 'Ubah ide aplikasimu menjadi spesifikasi PRD profesional dalam hitungan menit. Coba gunakan fitur Template untuk memulai!', timeAgo: '1 hari yang lalu', isRead: true }
+    ],
     isAiTyping: false,
     prdStatus: 'idle', // 'idle' | 'processing'
     prdError: null,
@@ -833,19 +840,19 @@ async function renderWorkspaceShell(root) {
 
                 <!-- Nav Menu Items -->
                 <nav class="space-y-1">
-                    <a href="#" data-nav="dashboard" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
+                    <a href="#" data-nav="dashboard" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs ${state.view === 'dashboard' ? 'font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60' : 'font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'} transition">
                         <span class="text-base">📊</span> Dashboard
                     </a>
-                    <a href="#" data-nav="projects" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60 transition">
+                    <a href="#" data-nav="projects" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs ${(state.view === 'projects' || state.view === 'project' || state.view === 'documentation') ? 'font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60' : 'font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'} transition">
                         <span class="text-base">📁</span> Proyek Saya
                     </a>
-                    <a href="#" data-nav="templates" data-soon="Template" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
+                    <a href="#" data-nav="templates" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs ${state.view === 'templates' ? 'font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60' : 'font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'} transition">
                         <span class="text-base">📋</span> Template
                     </a>
-                    <a href="#" data-nav="history" data-soon="Riwayat" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
+                    <a href="#" data-nav="history" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs ${state.view === 'history' ? 'font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60' : 'font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'} transition">
                         <span class="text-base">🕒</span> Riwayat
                     </a>
-                    <a href="#" data-nav="settings" data-soon="Pengaturan" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
+                    <a href="#" data-nav="settings" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs ${state.view === 'settings' ? 'font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60' : 'font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'} transition">
                         <span class="text-base">⚙️</span> Pengaturan
                     </a>
                     ${state.user?.is_admin ? `
@@ -907,11 +914,49 @@ async function renderWorkspaceShell(root) {
                     <button id="ws-theme-toggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                         ${state.theme === 'dark' ? icons.sun : icons.moon}
                     </button>
-                    <button id="ws-notif-btn" class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                        ${icons.bell}
-                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-[#5B4DF6] rounded-full"></span>
-                    </button>
-                    <div class="w-8 h-8 rounded-full bg-[#5B4DF6] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                    <div class="relative">
+                        <button id="ws-notif-btn" class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition ${state.showNotifPopup ? 'bg-slate-100 dark:bg-slate-800' : ''}">
+                            ${icons.bell}
+                            ${state.notifications.some(n => !n.isRead) ? '<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-[#5B4DF6] rounded-full ring-2 ring-white dark:ring-[#121624]"></span>' : ''}
+                        </button>
+
+                        ${state.showNotifPopup ? `
+                        <!-- Backdrop to close popup -->
+                        <div id="notif-backdrop" class="fixed inset-0 z-40"></div>
+                        <!-- Popup Dropdown -->
+                        <div class="absolute right-0 mt-2 w-[340px] bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col transform origin-top-right transition-all">
+                            <div class="p-3.5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/40">
+                                <span class="font-bold text-xs text-slate-800 dark:text-white">Notifikasi Terbaru</span>
+                                ${state.notifications.some(n => !n.isRead) ? `
+                                <button id="popup-mark-read" class="text-[10px] font-semibold text-[#5B4DF6] hover:underline transition">Tandai dibaca</button>
+                                ` : ''}
+                            </div>
+                            <div class="max-h-80 overflow-y-auto">
+                                ${state.notifications.length === 0 ? `
+                                <div class="py-10 text-center flex flex-col items-center">
+                                    <div class="text-2xl mb-2 opacity-50">🔕</div>
+                                    <div class="text-xs text-slate-500">Belum ada notifikasi baru.</div>
+                                </div>
+                                ` : state.notifications.map(n => `
+                                <div class="p-3.5 border-b border-slate-100/80 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition ${!n.isRead ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}">
+                                    <div class="flex gap-3.5">
+                                        <div class="text-xl mt-0.5">${n.icon}</div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-bold text-xs text-slate-900 dark:text-white truncate ${!n.isRead ? 'text-[#5B4DF6] dark:text-[#5B4DF6]' : ''}">${n.title}</div>
+                                            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug line-clamp-2">${n.desc}</div>
+                                            <div class="text-[9px] text-slate-400 mt-1.5 uppercase tracking-wider font-semibold">${n.timeAgo}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                `).join('')}
+                            </div>
+                            <button id="popup-view-all" class="p-3 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-[#5B4DF6] dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#5B4DF6] transition bg-white dark:bg-[#121624]">
+                                Lihat Semua Notifikasi &rarr;
+                            </button>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-[#5B4DF6] text-white flex items-center justify-center font-bold text-xs shadow-sm cursor-default">
                         ${userInitials}
                     </div>
                 </div>
@@ -950,7 +995,31 @@ async function renderWorkspaceShell(root) {
     if (upgradeBtn) upgradeBtn.onclick = () => comingSoon('Upgrade ke Pro Plan');
 
     const notifBtn = root.querySelector('#ws-notif-btn');
-    if (notifBtn) notifBtn.onclick = () => comingSoon('Pusat notifikasi');
+    if (notifBtn) notifBtn.onclick = () => {
+        state.showNotifPopup = !state.showNotifPopup;
+        render(root);
+    };
+
+    const notifBackdrop = root.querySelector('#notif-backdrop');
+    if (notifBackdrop) notifBackdrop.onclick = () => {
+        state.showNotifPopup = false;
+        render(root);
+    };
+
+    const popupViewAll = root.querySelector('#popup-view-all');
+    if (popupViewAll) popupViewAll.onclick = () => {
+        state.showNotifPopup = false;
+        resetProjectState();
+        state.view = 'notifications';
+        render(root);
+    };
+
+    const popupMarkRead = root.querySelector('#popup-mark-read');
+    if (popupMarkRead) popupMarkRead.onclick = (e) => {
+        e.stopPropagation();
+        state.notifications.forEach(n => n.isRead = true);
+        render(root);
+    };
 
     const searchInput = root.querySelector('#search-input');
     if (searchInput) {
@@ -968,13 +1037,6 @@ async function renderWorkspaceShell(root) {
                 comingSoon(item.dataset.soon);
                 return;
             }
-            // Tandai item aktif
-            root.querySelectorAll('[data-nav]').forEach(nav => {
-                nav.classList.remove('text-[#5B4DF6]', 'font-bold', 'bg-indigo-50', 'dark:bg-indigo-950/60');
-                nav.classList.add('text-slate-600', 'dark:text-slate-400', 'font-semibold');
-            });
-            item.classList.remove('text-slate-600', 'dark:text-slate-400', 'font-semibold');
-            item.classList.add('text-[#5B4DF6]', 'font-bold', 'bg-indigo-50', 'dark:bg-indigo-950/60');
 
             resetProjectState();
 
@@ -985,7 +1047,7 @@ async function renderWorkspaceShell(root) {
                 return;
             }
 
-            state.view = 'dashboard';
+            state.view = item.dataset.nav;
             render(root);
         };
     });
@@ -1006,8 +1068,18 @@ function renderWorkspaceContent(root) {
         renderDocumentationView(root, container);
     } else if (state.view === 'admin-tokens' && state.user?.is_admin) {
         renderAdminTokenUsage(root, container);
-    } else {
+    } else if (state.view === 'templates') {
+        renderTemplatesView(root, container);
+    } else if (state.view === 'history') {
+        renderHistoryView(root, container);
+    } else if (state.view === 'settings') {
+        renderSettingsView(root, container);
+    } else if (state.view === 'notifications') {
+        renderNotificationsView(root, container);
+    } else if (state.view === 'projects') {
         renderProjectsGrid(root, container);
+    } else {
+        renderDashboard(root, container);
     }
 }
 
@@ -1156,7 +1228,579 @@ function adminStatCard(label, value, icon) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Dashboard / "Proyek Saya" Grid View
+// 5. Dashboard View
+// ---------------------------------------------------------------------------
+function renderDashboard(root, container) {
+    const totalProjects = state.projects.length;
+    const finalizedProjects = state.projects.filter(p => p.latest_version?.status === 'finalized').length;
+    const draftProjects = totalProjects - finalizedProjects;
+    
+    // Asumsikan proyek yang belum final memerlukan perhatian/klarifikasi
+    const needsAttention = draftProjects;
+
+    const recentProjects = [...state.projects]
+        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+        .slice(0, 5);
+
+    container.innerHTML = `
+    <div class="space-y-6">
+        <!-- Section Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">Dashboard RencanaKU</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Selamat datang kembali, ${esc(state.user?.name || 'Pengguna')}.</p>
+            </div>
+            <button id="btn-create-project-dashboard" class="btn-primary text-xs px-4 py-2 font-bold shadow-sm flex items-center gap-2">
+                ${icons.plus} <span>Proyek Baru</span>
+            </button>
+        </div>
+
+        <!-- Project Status Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Proyek -->
+            <div class="bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-xl">
+                    📁
+                </div>
+                <div>
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Total Proyek</div>
+                    <div class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">${totalProjects}</div>
+                </div>
+            </div>
+
+            <!-- Klarifikasi Tertunda -->
+            <div class="bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center text-xl">
+                    ⏳
+                </div>
+                <div>
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Dalam Proses</div>
+                    <div class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">${needsAttention}</div>
+                </div>
+            </div>
+
+            <!-- PRD Selesai -->
+            <div class="bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-500 flex items-center justify-center text-xl">
+                    ✅
+                </div>
+                <div>
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">PRD Selesai</div>
+                    <div class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">${finalizedProjects}</div>
+                </div>
+            </div>
+
+            <!-- Gagal Validasi (Contoh metrik statis atau turunan) -->
+            <div class="bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-500 flex items-center justify-center text-xl">
+                    ⚠️
+                </div>
+                <div>
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Kontradiksi Ditemukan</div>
+                    <div class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Proyek Terbaru (Tabel/List) -->
+        <div class="bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h2 class="text-sm font-bold text-slate-900 dark:text-white font-heading">Proyek Terbaru</h2>
+                <button id="btn-view-all-projects" class="text-xs font-semibold text-[#5B4DF6] hover:underline">Lihat Semua</button>
+            </div>
+            
+            ${recentProjects.length > 0 ? `
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400">
+                        <tr>
+                            <th class="text-left font-semibold px-6 py-3">Nama Proyek</th>
+                            <th class="text-left font-semibold px-6 py-3">Status</th>
+                            <th class="text-left font-semibold px-6 py-3">Terakhir Diperbarui</th>
+                            <th class="text-right font-semibold px-6 py-3">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        ${recentProjects.map(p => {
+                            const isFinal = p.latest_version?.status === 'finalized';
+                            return `
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                                <td class="px-6 py-4">
+                                    <div class="font-bold text-slate-900 dark:text-white">${esc(p.title)}</div>
+                                    <div class="text-[11px] text-slate-400 line-clamp-1 max-w-xs mt-0.5">${esc(p.prompt || 'Draft ide')}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] ${isFinal ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60' : 'bg-indigo-50 text-[#5B4DF6] dark:bg-indigo-950/60'}">
+                                        ${isFinal ? 'Final' : 'Proses'}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-slate-500">${timeAgo(p.updated_at)}</td>
+                                <td class="px-6 py-4 text-right">
+                                    <button data-open-project="${p.id}" class="text-[#5B4DF6] font-semibold hover:underline">Buka &rarr;</button>
+                                </td>
+                            </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ` : `
+            <div class="p-10 text-center flex flex-col items-center">
+                <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-2xl mb-4">📂</div>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-white">Belum ada proyek</h3>
+                <p class="text-xs text-slate-500 mt-1 mb-4">Mulai rancang ide kamu sekarang juga.</p>
+                <button class="btn-primary text-xs px-4 py-2 font-bold shadow-sm" onclick="document.getElementById('btn-create-project-dashboard').click()">Buat Proyek Pertama</button>
+            </div>
+            `}
+        </div>
+    </div>
+    `;
+
+    const createBtn = container.querySelector('#btn-create-project-dashboard');
+    if (createBtn) createBtn.onclick = () => { state.showNewProjectModal = true; render(root); };
+
+    const viewAllBtn = container.querySelector('#btn-view-all-projects');
+    if (viewAllBtn) viewAllBtn.onclick = () => {
+        state.view = 'projects';
+        render(root);
+    };
+
+    container.querySelectorAll('[data-open-project]').forEach(btn => {
+        btn.onclick = () => openProject(root, btn.dataset.openProject);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// 5b. Templates View
+// ---------------------------------------------------------------------------
+function renderTemplatesView(root, container) {
+    const templates = [
+        {
+            icon: '🛒',
+            title: 'E-Commerce / Marketplace',
+            desc: 'Aplikasi jual beli online dengan keranjang belanja, integrasi pembayaran, dan manajemen produk.',
+            prompt: 'Saya ingin membuat platform e-commerce. Pengguna bisa mencari produk, menambahkan ke keranjang, dan melakukan checkout. Fitur utamanya mencakup katalog produk dengan filter, integrasi payment gateway, dan dashboard admin untuk mengelola inventaris. Aplikasi ini diperuntukkan untuk mobile dan web.'
+        },
+        {
+            icon: '🏥',
+            title: 'Sistem Manajemen Klinik',
+            desc: 'Aplikasi untuk menjadwalkan konsultasi dokter, rekam medis pasien, dan tagihan.',
+            prompt: 'Saya ingin membangun sistem manajemen klinik kesehatan. Pasien dapat membuat janji temu secara online. Dokter memiliki akses untuk melihat jadwal dan mencatat rekam medis. Admin klinik mengelola pembayaran dan tagihan. Harus sangat aman (HIPAA/standard privasi).'
+        },
+        {
+            icon: '🍽️',
+            title: 'Aplikasi Point of Sales (POS)',
+            desc: 'Sistem kasir untuk restoran atau toko ritel dengan manajemen stok dan laporan penjualan.',
+            prompt: 'Saya butuh aplikasi kasir (POS) untuk restoran berbasis tablet. Fiturnya meliputi pemesanan makanan berdasarkan nomor meja, cetak struk ke printer thermal, manajemen stok bahan baku dapur yang berkurang otomatis setiap ada pesanan, dan laporan penjualan harian.'
+        },
+        {
+            icon: '🎓',
+            title: 'Learning Management System (LMS)',
+            desc: 'Platform kursus online dengan materi video, kuis interaktif, dan sertifikat.',
+            prompt: 'Platform LMS (Learning Management System) untuk kursus online. Instruktur bisa mengunggah video materi dan membuat kuis. Siswa bisa mendaftar kursus, menonton video, mengikuti kuis, dan mendapatkan sertifikat digital jika lulus. Ada forum diskusi per kursus.'
+        },
+        {
+            icon: '✅',
+            title: 'Task Management / To-Do List',
+            desc: 'Aplikasi produktivitas untuk mengelola tugas tim dengan deadline dan kolaborasi.',
+            prompt: 'Aplikasi manajemen tugas (seperti Trello/Asana) di mana pengguna dapat membuat proyek, membagi tugas ke dalam kolom (To Do, In Progress, Done), menetapkan deadline, assign tugas ke anggota tim, dan meninggalkan komentar pada tugas tersebut.'
+        },
+        {
+            icon: '🏢',
+            title: 'Human Resource (HRIS)',
+            desc: 'Sistem manajemen kepegawaian meliputi absensi, cuti, dan penggajian (payroll).',
+            prompt: 'Saya ingin membuat sistem Human Resource Information System (HRIS). Karyawan bisa melakukan absensi via mobile dengan geolokasi, mengajukan cuti, dan melihat slip gaji. HR/Admin dapat menyetujui cuti, menghitung payroll otomatis berdasarkan kehadiran, dan mengelola database karyawan.'
+        },
+        {
+            icon: '🏨',
+            title: 'Booking & Reservasi Hotel',
+            desc: 'Aplikasi pencarian kamar hotel, pengecekan ketersediaan, dan sistem booking.',
+            prompt: 'Aplikasi booking hotel dimana tamu bisa mencari kamar berdasarkan tanggal dan tipe, melihat fasilitas kamar, dan melakukan pembayaran. Admin hotel memiliki dashboard untuk melihat reservasi masuk, mengubah status kamar menjadi tersedia/kotor, dan laporan okupansi harian.'
+        },
+        {
+            icon: '💰',
+            title: 'Personal Finance Tracker',
+            desc: 'Aplikasi pelacakan pemasukan, pengeluaran, dan manajemen budget pribadi.',
+            prompt: 'Aplikasi pelacak keuangan pribadi (Personal Finance Tracker). Pengguna bisa mencatat pemasukan dan pengeluaran harian, mengkategorikan transaksi (makanan, transportasi, dll), menetapkan budget bulanan, dan melihat grafik analisis pengeluaran. Mendukung ekspor laporan ke CSV atau PDF.'
+        },
+        {
+            icon: '📦',
+            title: 'Inventory & Warehouse',
+            desc: 'Sistem manajemen gudang, pelacakan stok barang masuk/keluar, dan barcode scanning.',
+            prompt: 'Sistem manajemen gudang (Warehouse Management System). Mendukung fitur pencatatan barang masuk (inbound) dan barang keluar (outbound). Admin bisa melacak sisa stok secara real-time, mendapatkan alert jika stok menipis, dan fitur scan barcode menggunakan kamera perangkat mobile.'
+        },
+        {
+            icon: '🤝',
+            title: 'Customer Relationship (CRM)',
+            desc: 'Platform untuk mengelola interaksi dengan prospek (leads) dan klien pelanggan.',
+            prompt: 'Aplikasi Customer Relationship Management (CRM) untuk tim sales. Fitur utama mencakup manajemen data klien (leads), mencatat riwayat komunikasi/meeting, memantau tahapan sales pipeline (prospecting, negotiation, closed-won), dan pengingat jadwal follow-up otomatis.'
+        }
+    ];
+
+    container.innerHTML = `
+    <div class="space-y-6">
+        <!-- Section Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">Template RencanaKU</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pilih template awal untuk mempercepat pembuatan draft PRD.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            ${templates.map((tpl, i) => `
+            <div class="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-[#5B4DF6] dark:hover:border-[#5B4DF6] transition flex flex-col justify-between group">
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition duration-300">
+                        ${tpl.icon}
+                    </div>
+                    <h3 class="font-bold text-sm text-slate-900 dark:text-white mb-2 font-heading group-hover:text-[#5B4DF6] transition">${tpl.title}</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
+                        ${tpl.desc}
+                    </p>
+                </div>
+                <button data-template-prompt="${esc(tpl.prompt)}" class="w-full py-2.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 group-hover:bg-[#5B4DF6] group-hover:text-white group-hover:border-[#5B4DF6] transition shadow-xs">
+                    Gunakan Template Ini
+                </button>
+            </div>
+            `).join('')}
+        </div>
+    </div>`;
+
+    container.querySelectorAll('[data-template-prompt]').forEach(btn => {
+        btn.onclick = () => {
+            state.newProjectPrefill = btn.dataset.templatePrompt;
+            state.showNewProjectModal = true;
+            render(root);
+        };
+    });
+}
+
+// ---------------------------------------------------------------------------
+// 5c. History View (Riwayat Aktivitas)
+// ---------------------------------------------------------------------------
+function renderHistoryView(root, container) {
+    let events = [];
+    state.projects.forEach(p => {
+        // Event creation
+        events.push({
+            date: new Date(p.created_at),
+            timeAgo: timeAgo(p.created_at),
+            title: `Proyek Dibuat: ${esc(p.title)}`,
+            desc: `Mulai merancang ide untuk aplikasi ini.`,
+            projectId: p.id,
+            iconColor: 'bg-emerald-500'
+        });
+
+        // Event update if updated_at is at least 60 seconds after created_at
+        const tCreated = new Date(p.created_at).getTime();
+        const tUpdated = new Date(p.updated_at).getTime();
+        if (tUpdated - tCreated > 60000) {
+            const isFinal = p.latest_version?.status === 'finalized';
+            events.push({
+                date: new Date(p.updated_at),
+                timeAgo: timeAgo(p.updated_at),
+                title: isFinal ? `PRD Final: ${esc(p.title)}` : `Update Dokumen: ${esc(p.title)}`,
+                desc: isFinal ? `Dokumen PRD telah berhasil difinalisasi.` : `Melakukan klarifikasi, validasi, atau menyunting requirement.`,
+                projectId: p.id,
+                iconColor: isFinal ? 'bg-amber-500' : 'bg-[#5B4DF6]'
+            });
+        }
+    });
+
+    // Sort descending
+    events.sort((a, b) => b.date - a.date);
+
+    container.innerHTML = `
+    <div class="space-y-6 pb-10">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">Riwayat Aktivitas</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pantau timeline perjalanan semua draft dokumen PRD kamu.</p>
+            </div>
+        </div>
+
+        ${events.length === 0 ? `
+        <div class="p-10 text-center flex flex-col items-center">
+            <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-2xl mb-4">🕒</div>
+            <h3 class="text-sm font-bold text-slate-800 dark:text-white">Belum ada riwayat</h3>
+            <p class="text-xs text-slate-500 mt-1 mb-4">Mulai proyek pertama kamu untuk melihat aktivitas di sini.</p>
+        </div>
+        ` : `
+        <!-- Timeline Container -->
+        <div class="relative border-l-2 border-slate-200 dark:border-slate-800 ml-4 md:ml-6 mt-4 space-y-10 pb-6">
+            ${events.map(ev => `
+            <div class="relative pl-8 md:pl-10">
+                <!-- Node Marker -->
+                <div class="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full ring-4 ring-[#F8F9FD] dark:ring-[#0B0D14] ${ev.iconColor}"></div>
+                
+                <!-- Timestamp -->
+                <div class="text-[11px] text-slate-400 font-medium mb-1.5 uppercase tracking-wider">${ev.date.toLocaleString('id-ID', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })} • ${ev.timeAgo}</div>
+                
+                <!-- Content Card -->
+                <div class="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm inline-block w-full sm:w-[400px]">
+                    <div class="font-bold text-sm text-slate-900 dark:text-white">${ev.title}</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">${ev.desc}</div>
+                    <button data-open-project="${ev.projectId}" class="text-xs font-semibold text-[#5B4DF6] mt-3.5 hover:underline flex items-center gap-1">
+                        Lihat Proyek &rarr;
+                    </button>
+                </div>
+            </div>
+            `).join('')}
+        </div>
+        `}
+    </div>`;
+
+    container.querySelectorAll('[data-open-project]').forEach(btn => {
+        btn.onclick = () => openProject(root, btn.dataset.openProject);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// 5d. Settings View (Pengaturan)
+// ---------------------------------------------------------------------------
+function renderSettingsView(root, container) {
+    // Beri nilai default jika tab belum diatur
+    if (!state.settingsTab) state.settingsTab = 'profile';
+
+    container.innerHTML = `
+    <div class="space-y-8 pb-10">
+        <!-- Header -->
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">Pengaturan Akun</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Kelola preferensi dan informasi pribadi Anda di sini.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Left Sidebar Navigation for Settings -->
+            <div class="space-y-1">
+                <button data-tab="profile" class="w-full text-left px-4 py-2.5 rounded-xl text-xs transition ${state.settingsTab === 'profile' ? 'font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60' : 'font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}">
+                    👤 Profil Pengguna
+                </button>
+                <button data-tab="preferences" class="w-full text-left px-4 py-2.5 rounded-xl text-xs transition ${state.settingsTab === 'preferences' ? 'font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60' : 'font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}">
+                    🎨 Preferensi Aplikasi
+                </button>
+                <button data-tab="security" class="w-full text-left px-4 py-2.5 rounded-xl text-xs transition ${state.settingsTab === 'security' ? 'font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60' : 'font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}">
+                    🔒 Keamanan & Sandi
+                </button>
+            </div>
+
+            <!-- Settings Content -->
+            <div class="md:col-span-2 space-y-8">
+                
+                ${state.settingsTab === 'profile' ? `
+                <!-- Profil Pengguna Form -->
+                <div class="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+                    <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-5 border-b border-slate-100 dark:border-slate-800 pb-3 font-heading">Informasi Profil</h2>
+                    <form class="space-y-4" onsubmit="event.preventDefault(); alert('Pembaruan profil belum diimplementasikan di backend.');">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Nama Lengkap</label>
+                                <input type="text" value="${esc(state.user?.name || '')}" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Alamat Email</label>
+                                <input type="email" value="${esc(state.user?.email || '')}" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Role / Peran</label>
+                            <input type="text" value="${state.user?.is_admin ? 'Administrator' : 'Pengguna Standar'}" readonly class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed text-xs">
+                        </div>
+                        <div class="pt-2 flex justify-end">
+                            <button type="submit" class="btn-primary px-5 py-2 text-xs font-bold shadow-sm">Simpan Perubahan</button>
+                        </div>
+                    </form>
+                </div>
+                ` : ''}
+
+                ${state.settingsTab === 'preferences' ? `
+                <!-- Preferensi Aplikasi Form -->
+                <div class="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+                    <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-5 border-b border-slate-100 dark:border-slate-800 pb-3 font-heading">Preferensi Aplikasi</h2>
+                    
+                    <div class="space-y-6">
+                        <!-- Theme Toggle -->
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-bold text-slate-900 dark:text-white">Tema Gelap (Dark Mode)</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">Ubah antarmuka aplikasi menjadi mode gelap untuk kenyamanan mata.</div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="setting-theme-toggle" class="sr-only peer" ${state.theme === 'dark' ? 'checked' : ''}>
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#5B4DF6] rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-[#5B4DF6]"></div>
+                            </label>
+                        </div>
+
+                        <!-- Export Default -->
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-bold text-slate-900 dark:text-white">Format Export Default</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">Format file standar saat mengekspor dokumen PRD.</div>
+                            </div>
+                            <select id="setting-export-format" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]">
+                                <option value="md" ${state.exportFormat === 'md' ? 'selected' : ''}>Markdown (.md)</option>
+                                <option value="json" ${state.exportFormat === 'json' ? 'selected' : ''}>JSON (.json)</option>
+                                <option value="pdf" ${state.exportFormat === 'pdf' ? 'selected' : ''}>PDF (.pdf)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${state.settingsTab === 'security' ? `
+                <!-- Keamanan & Sandi Form -->
+                <div class="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+                    <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-5 border-b border-slate-100 dark:border-slate-800 pb-3 font-heading">Keamanan & Sandi</h2>
+                    <form class="space-y-4" onsubmit="event.preventDefault(); alert('Pergantian password belum diimplementasikan di backend.');">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Password Lama</label>
+                            <input type="password" placeholder="Masukkan password lama" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Password Baru</label>
+                                <input type="password" placeholder="Minimal 8 karakter" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Konfirmasi Password Baru</label>
+                                <input type="password" placeholder="Ulangi password baru" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]">
+                            </div>
+                        </div>
+                        <div class="pt-2 flex justify-end">
+                            <button type="submit" class="btn-secondary border border-slate-200 dark:border-slate-700 px-5 py-2 text-xs font-bold shadow-sm rounded-xl">Perbarui Password</button>
+                        </div>
+                    </form>
+                </div>
+                ` : ''}
+
+            </div>
+        </div>
+    </div>`;
+
+    // Tab Events
+    container.querySelectorAll('[data-tab]').forEach(btn => {
+        btn.onclick = () => {
+            state.settingsTab = btn.dataset.tab;
+            render(root);
+        };
+    });
+
+    // Sub-events for specific tabs
+    if (state.settingsTab === 'preferences') {
+        const themeToggle = container.querySelector('#setting-theme-toggle');
+        if (themeToggle) {
+            themeToggle.onchange = () => {
+                toggleTheme(root);
+            };
+        }
+
+        const exportSelect = container.querySelector('#setting-export-format');
+        if (exportSelect) {
+            exportSelect.onchange = (e) => {
+                state.exportFormat = e.target.value;
+            };
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 5e. Notification View (Pusat Notifikasi)
+// ---------------------------------------------------------------------------
+function renderNotificationsView(root, container) {
+    const unreadCount = state.notifications.filter(n => !n.isRead).length;
+
+    container.innerHTML = `
+    <div class="space-y-6 pb-10">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+            <div>
+                <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">Pusat Notifikasi</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pembaruan aktivitas, peringatan sistem, dan informasi terbaru.</p>
+            </div>
+            ${state.notifications.length > 0 ? `
+            <div class="flex items-center gap-3">
+                <button id="btn-mark-read" class="text-xs font-semibold text-[#5B4DF6] hover:text-[#4E3FE3] transition ${unreadCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${unreadCount === 0 ? 'disabled' : ''}>
+                    Tandai semua dibaca
+                </button>
+                <span class="text-slate-300 dark:text-slate-700">|</span>
+                <button id="btn-clear-notif" class="text-xs font-semibold text-rose-500 hover:text-rose-600 transition">
+                    Bersihkan
+                </button>
+            </div>
+            ` : ''}
+        </div>
+
+        ${state.notifications.length === 0 ? `
+        <div class="py-16 text-center flex flex-col items-center">
+            <div class="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-3xl mb-5 shadow-inner">🔕</div>
+            <h3 class="text-base font-bold text-slate-800 dark:text-white">Belum ada notifikasi</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-sm">Anda sudah membaca semua pemberitahuan. Kami akan memberi tahu Anda jika ada aktivitas baru.</p>
+        </div>
+        ` : `
+        <div class="space-y-3">
+            ${state.notifications.map(notif => `
+            <div class="relative bg-white dark:bg-[#121624] border ${notif.isRead ? 'border-slate-200/60 dark:border-slate-800/60' : 'border-[#5B4DF6]/30 dark:border-[#5B4DF6]/40'} rounded-2xl p-5 sm:p-6 flex gap-4 sm:gap-5 transition hover:shadow-md group">
+                ${!notif.isRead ? `<div class="absolute top-5 right-5 w-2.5 h-2.5 bg-[#5B4DF6] rounded-full shadow-[0_0_8px_rgba(91,77,246,0.5)]"></div>` : ''}
+                <div class="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center text-xl sm:text-2xl ${
+                    notif.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500' : 
+                    notif.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' : 
+                    'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500'
+                }">
+                    ${notif.icon}
+                </div>
+                <div class="flex-1 min-w-0 pr-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 mb-1">
+                        <h3 class="font-bold text-sm text-slate-900 dark:text-white truncate ${!notif.isRead ? 'font-extrabold' : ''}">${notif.title}</h3>
+                        <span class="text-[10px] sm:text-[11px] font-semibold text-slate-400 dark:text-slate-500 whitespace-nowrap uppercase tracking-wider">${notif.timeAgo}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                        ${notif.desc}
+                    </p>
+                    ${!notif.isRead ? `
+                    <button class="btn-mark-single-read text-[11px] font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 px-3 py-1.5 rounded-lg transition" data-id="${notif.id}">
+                        Tandai dibaca
+                    </button>
+                    ` : ''}
+                </div>
+            </div>
+            `).join('')}
+        </div>
+        `}
+    </div>`;
+
+    // Events
+    const markAllBtn = container.querySelector('#btn-mark-read');
+    if (markAllBtn) {
+        markAllBtn.onclick = () => {
+            state.notifications.forEach(n => n.isRead = true);
+            render(root); // Re-render everything to update bell icon too
+        };
+    }
+
+    const clearBtn = container.querySelector('#btn-clear-notif');
+    if (clearBtn) {
+        clearBtn.onclick = () => {
+            state.notifications = [];
+            render(root);
+        };
+    }
+
+    container.querySelectorAll('.btn-mark-single-read').forEach(btn => {
+        btn.onclick = () => {
+            const id = parseInt(btn.dataset.id);
+            const notif = state.notifications.find(n => n.id === id);
+            if (notif) {
+                notif.isRead = true;
+                render(root);
+            }
+        };
+    });
+}
+
+// ---------------------------------------------------------------------------
+// 5f. "Proyek Saya" Grid View
 // ---------------------------------------------------------------------------
 function renderProjectsGrid(root, container) {
     const filteredProjects = state.projects.filter(p => {
@@ -1843,7 +2487,7 @@ function renderNewProjectModal() {
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Ceritakan Ide Kamu *</label>
-                    <textarea name="prompt" required rows="4" placeholder="Saya ingin membuat aplikasi manajemen tugas untuk mahasiswa yang bisa kolaborasi dengan teman, ada deadline, dan notifikasi..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]"></textarea>
+                    <textarea name="prompt" required rows="4" placeholder="Saya ingin membuat aplikasi manajemen tugas untuk mahasiswa yang bisa kolaborasi dengan teman, ada deadline, dan notifikasi..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]">${state.newProjectPrefill ? esc(state.newProjectPrefill) : ''}</textarea>
                 </div>
 
                 <p id="new-project-error" class="text-xs text-rose-500 font-medium"></p>
@@ -2077,6 +2721,7 @@ document.addEventListener('click', async (e) => {
     // New Project Modal Close
     if (e.target.closest('#close-new-project-modal') || e.target.closest('#cancel-new-project-btn')) {
         state.showNewProjectModal = false;
+        state.newProjectPrefill = null;
         render(document.getElementById('app'));
     }
 
