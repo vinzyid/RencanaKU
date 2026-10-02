@@ -33,6 +33,9 @@ class AdminController extends Controller
             ->get();
 
         // Ringkasan per user.
+        // CATATAN (Masalah #12): hanya ambil kolom yang aman (id, name, email).
+        // Kolom "role" sengaja TIDAK di-select agar tidak ikut terekspos di
+        // response, sehingga daftar admin tidak mudah dikenali attacker.
         $byUser = TokenUsage::query()
             ->select('user_id', DB::raw('COUNT(*) as requests'), DB::raw('COALESCE(SUM(total_tokens), 0) as total_tokens'))
             ->with('user:id,name,email')
@@ -48,7 +51,8 @@ class AdminController extends Controller
                 'total_tokens' => (int) $row->total_tokens,
             ]);
 
-        // Detail per request (terbaru dulu).
+        // Detail per request (terbaru dulu). Sama seperti di atas: hanya kolom
+        // aman yang diambil, tanpa "role".
         $recent = TokenUsage::query()
             ->with(['user:id,name,email', 'project:id,title'])
             ->latest('id')

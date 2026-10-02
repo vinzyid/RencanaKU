@@ -41,7 +41,10 @@ class SocialAuthSecurityTest extends TestCase
         $response = $this->get('/oauth/google/callback');
 
         $response->assertRedirect();
-        $this->assertStringContainsString('#oauth_token=', $response->headers->get('Location'));
+        // Masalah #11: kini hanya kode sekali-pakai yang dikirim di URL,
+        // bukan token mentah.
+        $this->assertStringContainsString('#oauth_code=', $response->headers->get('Location'));
+        $this->assertStringNotContainsString('oauth_token=', $response->headers->get('Location'));
 
         $this->assertDatabaseHas('users', [
             'email' => 'newuser@example.com',
@@ -63,7 +66,8 @@ class SocialAuthSecurityTest extends TestCase
         $response = $this->get('/oauth/google/callback');
 
         $response->assertRedirect();
-        $this->assertStringContainsString('#oauth_token=', $response->headers->get('Location'));
+        $this->assertStringContainsString('#oauth_code=', $response->headers->get('Location'));
+        $this->assertStringNotContainsString('oauth_token=', $response->headers->get('Location'));
 
         $this->assertSame(1, User::where('email', 'existing@example.com')->count());
     }
@@ -135,5 +139,53 @@ class SocialAuthSecurityTest extends TestCase
         $this->assertDatabaseMissing('users', [
             'provider_id' => 'no_email_id',
         ]);
+    }
+
+    /**
+     * Masalah #11: kode sekali-pakai dari callback ditukar menjadi token
+     * lewat endpoint POST, tanpa token mentah muncul di URL.
+     */
+    public function test_oauth_code_can_be_exchanged_for_token(): void
+    {
+        $this->mockSocialiteUser('google', 'exchange_id', 'exchange@example.com', 'Exchange User');
+
+        $callback = $this->get('/oauth/google/callback');
+        $location = $callback->headers->get('Location');
+
+        parse_str(parse_url($location, PHP_URL_FRAGMENT), $fragment);
+        $code = $fragment['oauth_code'] ?? null;
+
+        $this->assertNotEmpty($code, 'Callback harus membawa oauth_code di URL.');
+
+        $response = $this->postJson('/api/oauth/token/complete', ['code' => $code]);
+
+        $response->assertOk()
+            ->assertJsonStructure(['token', 'user' => ['id', 'name', 'email', 'is_admin']]);
+
+        $this->assertDatabaseHas('users', ['email' => 'exchange@example.com']);
+    }
+
+    /**
+     * Kode otentikasi bersifat sekali-pakai: pemakaian kedua harus ditolak.
+     */
+    public function test_oauth_code_is_single_use(): void
+    {
+        $this->mockSocialiteUser('google', 'single_use_id', 'singleuse@example.com', 'Single Use');
+
+        $callback = $this->get('/oauth/google/callback');
+        parse_str(parse_url($callback->headers->get('Location'), PHP_URL_FRAGMENT), $fragment);
+        $code = $fragment['oauth_code'];
+
+        // Pemakaian pertama sukses.
+        $this->postJson('/api/oauth/token/complete', ['code' => $code])->assertOk();
+
+        // Pemakaian kedua harus gagal (kode sudah hangus).
+        $this->postJson('/api/oauth/token/complete', ['code' => $code])->assertForbidden();
+    }
+
+    public function test_oauth_code_exchange_rejects_invalid_code(): void
+    {
+        $this->postJson('/api/oauth/token/complete', ['code' => 'kode-palsu'])
+            ->assertForbidden();
     }
 }

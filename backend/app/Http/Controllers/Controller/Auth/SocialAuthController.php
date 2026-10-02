@@ -3,24 +3,67 @@
 namespace App\Http\Controllers\Controller\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\Auth\OAuthCodeStore;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class SocialAuthController extends Controller
 {
+    public function __construct(
+        private readonly OAuthCodeStore $codes,
+    ) {}
+
     /**
-     * Redirect back to the SPA auth page with a Sanctum token so the
-     * token-based client can persist it and enter the workspace.
+     * Redirect back to the SPA with a short-lived, single-use authorization
+     * code (Masalah #11) — NOT the raw Sanctum token.
+     *
+     * Token mentah dulu ditaruh di fragment URL sehingga bisa bocor lewat
+     * history browser, log server, Referer, atau analytics. Kini yang
+     * dikirim hanyalah kode acak berumur pendek; token asli baru dibuat saat
+     * kode ditukar lewat request POST ke /api/oauth/token/complete.
      */
-    private function tokenRedirect(User $user): \Illuminate\Http\RedirectResponse
+    private function codeRedirect(User $user): \Illuminate\Http\RedirectResponse
     {
+        $code = $this->codes->issue($user);
+
+        return redirect('/#oauth_code=' . urlencode($code));
+    }
+
+    /**
+     * Tukar kode OAuth sekali-pakai dengan token Sanctum asli.
+     *
+     * Dipanggil oleh SPA lewat POST (bukan lewat URL), sehingga token tidak
+     * pernah menyentuh address bar. Kode hangus setelah satu kali pakai.
+     */
+    public function completeLogin(Request $request)
+    {
+        $data = $request->validate([
+            'code' => 'required|string|max:128',
+        ]);
+
+        $user = $this->codes->consume($data['code']);
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'Kode otentikasi tidak valid atau sudah kadaluarsa. Silakan coba masuk lagi.',
+            ], 403);
+        }
+
+        // Token sengaja dibuat pada request POST ini, bukan saat redirect,
+        // agar tidak pernah transit di URL.
         $token = $user->createToken('spa')->plainTextToken;
 
-        return redirect('/#oauth_token=' . urlencode($token));
+        return response()->json([
+            'token' => $token,
+            'user' => UserResource::make($user),
+        ]);
     }
 
     /**
@@ -111,7 +154,7 @@ class SocialAuthController extends Controller
 
             $user = $this->resolveUser('google', $googleUser, $email, $googleUser->getName());
 
-            return $this->tokenRedirect($user);
+            return $this->codeRedirect($user);
         } catch (\DomainException $e) {
             return redirect('/?oauth_error=' . urlencode($e->getMessage()));
         } catch (\Throwable $e) {
@@ -145,7 +188,7 @@ class SocialAuthController extends Controller
 
             $user = $this->resolveUser('github', $githubUser, $email, $githubUser->getName());
 
-            return $this->tokenRedirect($user);
+            return $this->codeRedirect($user);
         } catch (\DomainException $e) {
             return redirect('/?oauth_error=' . urlencode($e->getMessage()));
         } catch (\Throwable $e) {

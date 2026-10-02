@@ -102,12 +102,37 @@ async function api(path, options = {}) {
 // ---------------------------------------------------------------------------
 // Utilities & Icons
 // ---------------------------------------------------------------------------
-const esc = (value) =>
-    String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;');
+// Escaping HTML lengkap untuk input pengguna (Masalah #10).
+//
+// Versi sebelumnya hanya meng-escape 4 karakter (&, <, >, "), sehingga
+// apostrophe (') dan garis miring (/) lolos begitu saja — cukup untuk
+// merusak atribut ber-quote tunggal atau memicu vektor XSS. Fungsi ini
+// meng-escape seluruh karakter berbahaya sekaligus membuang karakter tak
+// terlihat (zero-width space) yang bisa dipakai mem-bypass filter.
+//
+// Urutan penting: '&' harus di-escape lebih dulu agar tidak terjadi
+// double-encoding pada entitas yang baru kita hasilkan.
+const ESCAPE_MAP = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;',
+    '`': '&#96;',
+};
+
+const esc = (value) => {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    return String(value)
+        .replace(/[&<>"'/`]/g, (char) => ESCAPE_MAP[char])
+        // Karakter tak terlihat dibuang agar tidak bisa dipakai menyusup
+        // melewati validasi tampilan.
+        .replace(/[\u200B-\u200D\uFEFF]/g, '');
+};
 
 const nl2br = (value) => esc(value).replace(/\n/g, '<br>');
 
@@ -250,10 +275,10 @@ const icons = {
 // ---------------------------------------------------------------------------
 // Main Mount & Router
 // ---------------------------------------------------------------------------
-export function mountApp(root) {
+export async function mountApp(root) {
     initTheme();
-    captureOAuthResult();
     window.addEventListener('popstate', () => route(root));
+    await captureOAuthResult(root);
     if (state.token) {
         state.view = 'dashboard';
     } else {
@@ -262,16 +287,45 @@ export function mountApp(root) {
     render(root);
 }
 
-// Tangkap token (atau pesan error) yang dikirim balik oleh callback OAuth,
-// lalu bersihkan hash/query agar tidak tersisa di address bar.
-function captureOAuthResult() {
+// Tangkap hasil callback OAuth (Masalah #11).
+//
+// Backend tidak lagi mengirim token mentah di URL. Yang dibawa hanyalah
+// "oauth_code" acak sekali-pakai. Kita langsung bersihkan address bar, lalu
+// menukar kode tersebut dengan token asli lewat POST ke /oauth/token/complete
+// sehingga token tidak pernah singgah di history browser maupun log server.
+async function captureOAuthResult(root) {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const oauthToken = hash.get('oauth_token');
+    const oauthCode = hash.get('oauth_code');
 
-    if (oauthToken) {
-        state.token = oauthToken;
-        localStorage.setItem(STORAGE_KEY, oauthToken);
-        window.history.replaceState({}, '', window.location.pathname);
+    if (!oauthCode) {
+        return;
+    }
+
+    // Bersihkan URL lebih dulu agar kode tidak tersisa di address bar/history.
+    window.history.replaceState({}, '', window.location.pathname);
+
+    try {
+        const response = await fetch('/api/oauth/token/complete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            },
+            body: JSON.stringify({ code: oauthCode }),
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.token) {
+            showToast(data?.message || 'Gagal menyelesaikan login. Silakan coba lagi.', 'error');
+            return;
+        }
+
+        state.token = data.token;
+        state.user = data.user || null;
+        localStorage.setItem(STORAGE_KEY, data.token);
+    } catch {
+        showToast('Gagal menyelesaikan login. Silakan coba lagi.', 'error');
     }
 }
 
@@ -781,7 +835,7 @@ async function renderWorkspaceShell(root) {
                     <a href="#" data-nav="settings" data-soon="Pengaturan" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
                         <span class="text-base">⚙️</span> Pengaturan
                     </a>
-                    ${state.user?.role === 'admin' ? `
+                    ${state.user?.is_admin ? `
                     <a href="#" data-nav="admin-tokens" class="nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition">
                         <span class="text-base">📈</span> Penggunaan Token
                     </a>` : ''}
@@ -904,8 +958,8 @@ async function renderWorkspaceShell(root) {
 
             resetProjectState();
 
-            // Halaman admin (pemakaian token) hanya untuk role admin.
-            if (item.dataset.nav === 'admin-tokens' && state.user?.role === 'admin') {
+            // Halaman admin (pemakaian token) hanya untuk user admin.
+            if (item.dataset.nav === 'admin-tokens' && state.user?.is_admin) {
                 state.view = 'admin-tokens';
                 render(root);
                 return;
@@ -930,7 +984,7 @@ function renderWorkspaceContent(root) {
         renderProjectChatView(root, container);
     } else if (state.view === 'documentation') {
         renderDocumentationView(root, container);
-    } else if (state.view === 'admin-tokens' && state.user?.role === 'admin') {
+    } else if (state.view === 'admin-tokens' && state.user?.is_admin) {
         renderAdminTokenUsage(root, container);
     } else {
         renderProjectsGrid(root, container);

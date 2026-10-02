@@ -2,10 +2,16 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\Controller\Auth\SocialAuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [ApiController::class, 'register'])->middleware('throttle:register');
 Route::post('/login', [ApiController::class, 'login'])->middleware('throttle:login');
+
+// Tukar kode OAuth sekali-pakai (dari callback social login) menjadi token
+// Sanctum via POST, sehingga token tidak pernah muncul di URL (Masalah #11).
+Route::post('/oauth/token/complete', [SocialAuthController::class, 'completeLogin'])
+    ->middleware('throttle:login');
 
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [ApiController::class, 'logout']);

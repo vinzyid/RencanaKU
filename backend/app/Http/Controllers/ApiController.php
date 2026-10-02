@@ -7,6 +7,7 @@ use App\Models\AmbiguityFlag;
 use App\Models\ContradictionFlag;
 use App\Models\PrdVersion;
 use App\Models\Project;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\Ai\PrdDiff;
 use App\Services\Ai\PrdGenerator;
@@ -66,7 +67,7 @@ class ApiController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json(['user' => $request->user()]);
+        return response()->json(['user' => UserResource::make($request->user())]);
     }
 
     // ---------------------------------------------------------------------
@@ -652,7 +653,12 @@ class ApiController extends Controller
     {
         $token = $user->createToken('spa')->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user], $status);
+        // Response user disanitasi lewat UserResource agar field "role" mentah
+        // tidak bocor ke klien (Masalah #12).
+        return response()->json([
+            'token' => $token,
+            'user' => UserResource::make($user),
+        ], $status);
     }
 
     private function authorizeProject(Request $request, Project $project): void
