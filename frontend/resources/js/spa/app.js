@@ -28,7 +28,8 @@ const state = {
     versions: null,
     diffRange: null,
     activeDocTab: 'preview', // 'preview' | 'markdown' | 'json' | 'history'
-    view: 'dashboard', // 'landing' | 'auth' | 'dashboard' | 'project' | 'documentation'
+    view: 'landing', // 'landing' | 'auth' | 'dashboard' | 'project' | 'documentation'
+    landingTab: 'beranda', // 'beranda' | 'fitur' | 'cara-kerja' | 'testimoni' | 'faq'
     authMode: 'login', // 'login' | 'register'
     busy: false,
     showNewProjectModal: false,
@@ -373,34 +374,141 @@ function render(root) {
 // 1. Landing Page (Public View)
 // ---------------------------------------------------------------------------
 function renderLanding(root) {
-    root.innerHTML = `
-    <div class="min-h-screen bg-[#F8F9FD] dark:bg-[#0B0D14] flex flex-col transition-colors duration-200">
-        <!-- Navbar -->
-        <header class="w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between z-30">
-            <div class="flex items-center gap-3">
-                ${icons.brandLogo}
-                <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white font-heading">RencanaKU</span>
-            </div>
-            
-            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
-                <a href="#beranda" class="hover:text-[#5B4DF6] text-[#5B4DF6] font-semibold transition">Beranda</a>
-                <a href="#fitur" class="hover:text-[#5B4DF6] transition">Fitur</a>
-                <a href="#cara-kerja" class="hover:text-[#5B4DF6] transition">Cara Kerja</a>
-                <a href="#testimoni" class="hover:text-[#5B4DF6] transition">Testimoni</a>
-                <a href="#faq" class="hover:text-[#5B4DF6] transition">FAQ</a>
-            </nav>
+    const tab = state.landingTab || 'beranda';
 
-            <div class="flex items-center gap-3">
-                <button id="theme-toggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    ${state.theme === 'dark' ? icons.sun : icons.moon}
-                </button>
-                <button id="landing-login" class="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#5B4DF6] transition">Masuk</button>
-                <button id="landing-register" class="btn-primary text-sm px-5 py-2.5">Daftar</button>
-            </div>
-        </header>
+    let mainContent = '';
 
+    if (tab === 'fitur') {
+        mainContent = `
+        <main class="flex-1 max-w-7xl mx-auto px-6 py-12 flex flex-col justify-center animate-fadeIn">
+            <div class="text-center max-w-2xl mx-auto mb-10">
+                <span class="text-xs font-bold uppercase tracking-widest text-[#5B4DF6] mb-2 block font-heading">FITUR UNGGULAN</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white font-heading">
+                    Semua yang kamu butuhkan, dalam satu platform.
+                </h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400 mt-3">
+                    RencanaKU dirancang khusus untuk memastikan spesifikasi PRD kamu lengkap, jelas, dan siap diproses oleh AI agent.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-200 transition group">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
+                        💬
+                    </div>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-base mb-2 font-heading">Klarifikasi Pintar</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        AI akan mengajukan pertanyaan terarah untuk memperjelas ide dasar kamu secara bertahap.
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-200 transition group">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
+                        🔍
+                    </div>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-base mb-2 font-heading">Deteksi Ambiguitas</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Menemukan requirement yang masih samar atau ambigu sebelum masuk ke tahap pengodean.
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-200 transition group">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
+                        ⚡
+                    </div>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-base mb-2 font-heading">Pengecekan Kontradiksi</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Memastikan tidak ada dua aturan spesifikasi yang bertentangan satu sama lain.
+                    </p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-200 transition group">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
+                        📜
+                    </div>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-base mb-2 font-heading">Histori & Versioning</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Simpan setiap iterasi perubahan PRD secara terstruktur dengan fitur penomoran versi unik.
+                    </p>
+                </div>
+            </div>
+        </main>`;
+    } else if (tab === 'cara-kerja') {
+        mainContent = `
+        <main class="flex-1 max-w-7xl mx-auto px-6 py-12 flex flex-col justify-center animate-fadeIn">
+            <div class="text-center max-w-xl mx-auto mb-10">
+                <span class="text-xs font-bold uppercase tracking-widest text-[#5B4DF6] mb-2 block font-heading">CARA KERJA</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white font-heading">
+                    5 Langkah Mudah Menuju PRD Sempurna
+                </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                ${STEPS.map((s, idx) => `
+                <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 text-center flex flex-col items-center">
+                    <div class="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] font-bold text-sm flex items-center justify-center mb-3">
+                        ${idx + 1}
+                    </div>
+                    <h4 class="font-bold text-slate-900 dark:text-white text-sm mb-1">${s.title}</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">${s.sub}</p>
+                </div>`).join('')}
+            </div>
+        </main>`;
+    } else if (tab === 'testimoni') {
+        mainContent = `
+        <main class="flex-1 max-w-7xl mx-auto px-6 py-12 flex flex-col justify-center animate-fadeIn">
+            <div class="text-center max-w-xl mx-auto mb-10">
+                <span class="text-xs font-bold uppercase tracking-widest text-[#5B4DF6] mb-2 block font-heading">TESTIMONI</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white font-heading">
+                    Dipercaya Pengembang & Student Developer
+                </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed italic mb-4">"RencanaKU memangkas waktu pembuatan dokumen requirement dari 3 hari menjadi hanya 15 menit. Sangat membantu!"</p>
+                    <div class="font-bold text-xs text-slate-900 dark:text-white">Budi Santoso</div>
+                    <div class="text-[11px] text-slate-400">Fullstack Developer</div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed italic mb-4">"Fitur deteksi kontradiksinya mantap banget. AI coding agent jadi ga bingung lagi baca spek proyek saya."</p>
+                    <div class="font-bold text-xs text-slate-900 dark:text-white">Siti Rahma</div>
+                    <div class="text-[11px] text-slate-400">Software Engineer</div>
+                </div>
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed italic mb-4">"Versioning PRD sangat membantu melacak revisi tugas akhir aplikasi saya. Recommended!"</p>
+                    <div class="font-bold text-xs text-slate-900 dark:text-white">Andi Wijaya</div>
+                    <div class="text-[11px] text-slate-400">Mahasiswa Teknik Informatika</div>
+                </div>
+            </div>
+        </main>`;
+    } else if (tab === 'faq') {
+        mainContent = `
+        <main class="flex-1 max-w-4xl mx-auto px-6 py-12 flex flex-col justify-center animate-fadeIn">
+            <div class="text-center max-w-xl mx-auto mb-8">
+                <span class="text-xs font-bold uppercase tracking-widest text-[#5B4DF6] mb-2 block font-heading">PERTANYAAN UMUM</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white font-heading">
+                    Frequently Asked Questions
+                </h2>
+            </div>
+            <div class="space-y-4">
+                <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <h4 class="font-bold text-slate-900 dark:text-white text-sm mb-1">Apa itu RencanaKU?</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">RencanaKU adalah platform berbasis AI untuk membantu kamu membuat dokumen Product Requirement Document (PRD) yang jelas dan siap dieksekusi.</p>
+                </div>
+                <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <h4 class="font-bold text-slate-900 dark:text-white text-sm mb-1">Apakah bisa langsung diekspor ke PDF/Markdown?</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Ya, hasil PRD dapat diekspor secara instan dalam format Markdown maupun PDF resmi.</p>
+                </div>
+            </div>
+        </main>`;
+    } else {
+        // Tab Beranda (Hero Section)
+        mainContent = `
         <!-- Hero Section -->
-        <main class="flex-1 max-w-7xl mx-auto px-6 pt-10 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <main class="flex-1 max-w-7xl mx-auto px-6 pt-6 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             <!-- Left Hero Content -->
             <div class="lg:col-span-6 flex flex-col items-start gap-6">
                 <!-- Tag Pill -->
@@ -461,20 +569,20 @@ function renderLanding(root) {
                     </div>
 
                     <!-- Floating Speech Bubbles -->
-                    <div class="hidden sm:block absolute -top-4 right-2 speech-bubble animate-float shadow-xl">
+                    <div class="hidden sm:block absolute -top-5 right-2 speech-bubble animate-float shadow-xl z-10">
                         Bikin aplikasi manajemen tugas..
                     </div>
-                    <div class="hidden sm:block absolute top-[18%] -left-4 speech-bubble animate-float shadow-xl" style="animation-delay: -2s;">
+                    <div class="hidden sm:block absolute -top-4 -left-6 speech-bubble animate-float shadow-xl z-10" style="animation-delay: -2s;">
                         Untuk mahasiswa...
                     </div>
 
                     <!-- Floating Inspiring Quote -->
-                    <div class="absolute bottom-6 right-4 bg-gradient-to-r from-indigo-500/90 to-purple-600/90 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg backdrop-blur-md italic">
+                    <div class="absolute -bottom-4 right-2 bg-gradient-to-r from-indigo-500/90 to-purple-600/90 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg backdrop-blur-md italic z-10">
                         "Ide besar, mulai dari sini!"
                     </div>
 
-                    <!-- Floating PRD Status Card -->
-                    <div class="hidden sm:block absolute bottom-4 -left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/80 dark:border-slate-700/80 rounded-2xl p-3.5 shadow-2xl w-48 text-left animate-float z-10" style="animation-delay: -1s;">
+                    <!-- Floating PRD Status Card (Positioned completely outside illustration) -->
+                    <div class="hidden sm:block absolute -bottom-14 -left-12 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-700/80 rounded-2xl p-3.5 shadow-2xl w-48 text-left animate-float z-20" style="animation-delay: -1s;">
                         <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100 dark:border-slate-800/80">
                             <span class="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-white font-heading flex items-center gap-1.5">
                                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> PRD Output
@@ -502,66 +610,51 @@ function renderLanding(root) {
                     </div>
                 </div>
             </div>
-        </main>
+        </main>`;
+    }
 
-        <!-- Features Section (Bottom Bar / Cards) -->
-        <section id="fitur" class="w-full max-w-7xl mx-auto px-6 pb-20">
-            <div class="text-center max-w-xl mx-auto mb-12">
-                <span class="text-xs font-bold uppercase tracking-widest text-[#5B4DF6] mb-2 block font-heading">FITUR UNGGULAN</span>
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-heading">
-                    Semua yang kamu butuhkan, dalam satu platform.
-                </h2>
+    root.innerHTML = `
+    <div class="min-h-screen bg-[#F8F9FD] dark:bg-[#0B0D14] flex flex-col transition-colors duration-200">
+        <!-- Navbar -->
+        <header class="w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between z-30">
+            <div class="flex items-center gap-3 cursor-pointer" id="nav-brand">
+                ${icons.brandLogo}
+                <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white font-heading">RencanaKU</span>
             </div>
+            
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
+                <button id="nav-beranda" class="${tab === 'beranda' ? 'text-[#5B4DF6] font-bold border-b-2 border-[#5B4DF6] pb-0.5' : 'text-slate-600 dark:text-slate-300 hover:text-[#5B4DF6]'} transition">Beranda</button>
+                <button id="nav-fitur" class="${tab === 'fitur' ? 'text-[#5B4DF6] font-bold border-b-2 border-[#5B4DF6] pb-0.5' : 'text-slate-600 dark:text-slate-300 hover:text-[#5B4DF6]'} transition">Fitur</button>
+                <button id="nav-cara-kerja" class="${tab === 'cara-kerja' ? 'text-[#5B4DF6] font-bold border-b-2 border-[#5B4DF6] pb-0.5' : 'text-slate-600 dark:text-slate-300 hover:text-[#5B4DF6]'} transition">Cara Kerja</button>
+                <button id="nav-testimoni" class="${tab === 'testimoni' ? 'text-[#5B4DF6] font-bold border-b-2 border-[#5B4DF6] pb-0.5' : 'text-slate-600 dark:text-slate-300 hover:text-[#5B4DF6]'} transition">Testimoni</button>
+                <button id="nav-faq" class="${tab === 'faq' ? 'text-[#5B4DF6] font-bold border-b-2 border-[#5B4DF6] pb-0.5' : 'text-slate-600 dark:text-slate-300 hover:text-[#5B4DF6]'} transition">FAQ</button>
+            </nav>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Card 1 -->
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-100 transition group">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
-                        💬
-                    </div>
-                    <h3 class="font-bold text-slate-900 dark:text-white text-base mb-2 font-heading">Klarifikasi Pintar</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        AI akan mengajukan pertanyaan untuk memperjelas ide kamu.
-                    </p>
-                </div>
-
-                <!-- Card 2 -->
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-100 transition group">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
-                        🔍
-                    </div>
-                    <h3 class="font-bold text-slate-900 dark:text-white text-base mb-2 font-heading">Deteksi Ambiguitas</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Menemukan requirement yang masih tidak jelas secara presisi.
-                    </p>
-                </div>
-
-                <!-- Card 3 -->
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-100 transition group">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
-                        ⚡
-                    </div>
-                    <h3 class="font-bold text-slate-900 dark:text-white text-base mb-2 font-heading">Pengecekan Kontradiksi</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Memastikan tidak ada requirement yang saling bertentangan.
-                    </p>
-                </div>
-
-                <!-- Card 4 -->
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-100 transition group">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
-                        📜
-                    </div>
-                    <h3 class="font-bold text-slate-900 dark:text-white text-base mb-2 font-heading">Histori & Versioning</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Simpan semua revisi dengan detail dan mudah ditelusuri per diff.
-                    </p>
-                </div>
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    ${state.theme === 'dark' ? icons.sun : icons.moon}
+                </button>
+                <button id="landing-login" class="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-[#5B4DF6] transition">Masuk</button>
+                <button id="landing-register" class="btn-primary text-sm px-5 py-2.5">Daftar</button>
             </div>
-        </section>
+        </header>
+
+        ${mainContent}
     </div>`;
 
-    // Event Listeners
+    // Event Listeners Navbar & Nav Tabs
+    const setTab = (t) => {
+        state.landingTab = t;
+        render(root);
+    };
+
+    root.querySelector('#nav-brand').onclick = () => setTab('beranda');
+    root.querySelector('#nav-beranda').onclick = () => setTab('beranda');
+    root.querySelector('#nav-fitur').onclick = () => setTab('fitur');
+    root.querySelector('#nav-cara-kerja').onclick = () => setTab('cara-kerja');
+    root.querySelector('#nav-testimoni').onclick = () => setTab('testimoni');
+    root.querySelector('#nav-faq').onclick = () => setTab('faq');
+
     root.querySelector('#theme-toggle').onclick = () => toggleTheme(root);
     root.querySelector('#landing-login').onclick = () => {
         state.authMode = 'login';
@@ -573,19 +666,23 @@ function renderLanding(root) {
         state.view = 'auth';
         render(root);
     };
-    root.querySelector('#hero-cta-start').onclick = () => {
-        state.authMode = 'register';
-        state.view = 'auth';
-        render(root);
-    };
-    root.querySelector('#hero-cta-demo').onclick = () => {
-        // Arahkan ke bagian fitur (demo interaktif belum tersedia)
-        const target = root.querySelector('#fitur');
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        showToast('Demo interaktif akan segera hadir. 🚧', 'info');
-    };
+
+    const heroCtaStart = root.querySelector('#hero-cta-start');
+    if (heroCtaStart) {
+        heroCtaStart.onclick = () => {
+            state.authMode = 'register';
+            state.view = 'auth';
+            render(root);
+        };
+    }
+
+    const heroCtaDemo = root.querySelector('#hero-cta-demo');
+    if (heroCtaDemo) {
+        heroCtaDemo.onclick = () => {
+            setTab('fitur');
+            showToast('Menampilkan fitur unggulan RencanaKU. 💡', 'info');
+        };
+    }
 }
 
 // ---------------------------------------------------------------------------
