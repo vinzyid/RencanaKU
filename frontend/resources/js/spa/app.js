@@ -2029,6 +2029,8 @@ function renderProjectChatView(root, container) {
         state.view = 'dashboard';
         return render(root);
     }
+    const isFinalized = state.prd?.status === 'finalized';
+    const can_finalize = state.validation?.can_finalize;
 
     container.innerHTML = `
     <div class="space-y-6 max-w-5xl mx-auto">
@@ -2052,9 +2054,14 @@ function renderProjectChatView(root, container) {
                 </div>
 
                 <div class="flex items-center gap-2">
+                    ${!isFinalized && can_finalize ? `
+                    <button id="btn-chat-finalize-prd" class="btn-primary text-[11px] px-3.5 py-1.5 font-bold flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 border-emerald-500 shadow-emerald-500/25 dark:bg-emerald-600 dark:hover:bg-emerald-700 transition">
+                        ${icons.check} <span>Finalisasi PRD</span>
+                    </button>
+                    ` : ''}
                     ${state.prd ? `
-                    <button id="btn-view-doc" class="btn-secondary text-xs px-3.5 py-1.5 font-bold flex items-center gap-1.5">
-                        📄 Lihat Dokumen PRD
+                    <button id="btn-view-doc" class="btn-secondary text-[11px] px-3.5 py-1.5 font-bold flex items-center gap-1.5">
+                        📄 Lihat Dokumen
                     </button>` : ''}
                 </div>
             </div>
@@ -2091,6 +2098,27 @@ function renderProjectChatView(root, container) {
         viewDocBtn.onclick = () => {
             state.view = 'documentation';
             render(root);
+        };
+    }
+
+    const btnChatFinalize = container.querySelector('#btn-chat-finalize-prd');
+    if (btnChatFinalize) {
+        btnChatFinalize.onclick = async () => {
+            const originalHtml = btnChatFinalize.innerHTML;
+            btnChatFinalize.disabled = true;
+            btnChatFinalize.innerHTML = `${icons.spinner} <span>Memproses...</span>`;
+            try {
+                const data = await api(`/projects/${project.id}/finalize`, { method: 'POST' });
+                state.project = data.project;
+                state.prd = data.prd;
+                state.validation = data.validation;
+                state.stage = data.stage;
+                render(root);
+            } catch (err) {
+                alert(err.message || 'Gagal melakukan finalisasi PRD.');
+                btnChatFinalize.disabled = false;
+                btnChatFinalize.innerHTML = originalHtml;
+            }
         };
     }
 
