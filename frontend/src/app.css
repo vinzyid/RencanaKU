@@ -2,8 +2,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@source '../js/**/*.js';
-@source '../../../backend/resources/views/**/*.blade.php';
+@source './**/*.{js,jsx}';
 
 :root {
     --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;

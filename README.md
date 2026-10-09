@@ -125,18 +125,22 @@ php artisan migrate --seed
 #    AI_MAX_TOKENS=4096      (batas keluaran token AI, naikkan bila PRD panjang terpotong)
 #    Tanpa key, sistem otomatis memakai generator lokal deterministik.
 
-# 5. Build asset frontend (dari folder frontend)
+# 5. Build frontend React (dari folder frontend)
 cd ../frontend
 npm install
 npm run build
-# Output build otomatis ditulis ke backend/public/build
+# Output build ditulis ke frontend/dist, dilayani server statis terpisah
 
-# 6. Jalankan server (dari folder backend)
+# 6. Jalankan server API (dari folder backend)
 cd ../backend
 php artisan serve
 ```
 
-Buka `http://localhost:8000`.
+- Backend API: `http://localhost:8000`
+- Frontend (dev): `http://localhost:5173`
+- Frontend (produksi): layani `frontend/dist` lewat web server statis (Nginx, `vite preview`, dll.)
+
+> Frontend & backend terpisah. Saat dev, Vite mem-proxy `/api` & `/oauth` ke backend (`VITE_BACKEND_URL`, default `http://localhost:8000`). Di produksi, set `VITE_API_URL` di frontend dan `APP_FRONTEND_URL` + `CORS_ALLOWED_ORIGINS` di backend.
 
 ### Akun Demo
 
@@ -182,31 +186,39 @@ Setiap kali membuat versi PRD baru, kolom `ai_provider` mencatat provider yang b
 
 ## Struktur Singkat
 
+Aplikasi dipisah penuh: **frontend React (Vite)** dan **backend Laravel (headless API)**. Backend tidak merender view apa pun kecuali template PDF export; komunikasi lewat REST `/api` + CORS.
+
 ```
-backend/                                   # Aplikasi Laravel (API + shell blade)
+backend/                                   # Aplikasi Laravel (headless REST API)
   app/
     Http/Controllers/ApiController.php     # Auth, proyek, chat, versi, finalize, export
+    Http/Controllers/Controller/Auth/
+      SocialAuthController.php             # OAuth Google/GitHub -> redirect balik ke frontend
     Models/                                # User, Project, Message, PrdVersion, ...
     Services/
       ProjectFlow.php                      # State machine & derivasi tahap (stepper)
-      Ai/
-        AiGateway.php                      # Fallback chain OpenRouter -> Gemini -> local
-        PrdGenerator.php                   # Generate / ambiguity / contradiction / revisi
-        LocalPrdEngine.php                 # Generator deterministik (tanpa API key)
-        PrdDiff.php                        # Diff antar versi PRD
-  resources/views/
-    welcome.blade.php                      # Shell SPA
-    exports/prd-pdf.blade.php              # Template export PDF
+      Ai/                                  # AiGateway, PrdGenerator, LocalPrdEngine, PrdDiff
+  resources/views/exports/prd-pdf.blade.php# Template export PDF (dompdf)
   routes/api.php                           # Seluruh endpoint REST
-  public/                                  # Document root + hasil build asset
+  routes/web.php                           # Hanya route OAuth (redirect)
+  public/                                  # Document root API + gambar
 
-frontend/                                  # Sumber asset (Vite + Tailwind)
-  resources/css/app.css                    # Styling stepper, chat, split-panel, diff
-  resources/js/app.js                      # Entry Vite
-  resources/js/spa/app.js                  # Seluruh logika SPA (stepper + chat)
+frontend/                                  # Aplikasi React (Vite + Tailwind), berdiri sendiri
+  index.html                               # Shell HTML SPA
+  src/
+    main.jsx                               # Entry React
+    app.css                                # Tailwind + tema
+    react/
+      app/                                 # App (routes) + AppProviders
+      context/                             # Auth, Theme, Toast, Shell, Project
+      utils/                               # api (fetch), format, icons
+      components/landing|auth|workspace|modals
+  public/images/                           # Asset gambar (hero, banner)
+  dist/                                    # Hasil build (dilayani server statis)
   package.json
-  vite.config.js                           # Build diarahkan ke backend/public/build
+  vite.config.js                           # Build ke frontend/dist, proxy /api & /oauth ke backend
 ```
+
 # RencanaKU
 
 **Platform Prompt-to-PRD Generator dengan Deteksi Ambiguitas & Kontradiksi.**
@@ -334,18 +346,22 @@ php artisan migrate --seed
 #    AI_MAX_TOKENS=4096      (batas keluaran token AI, naikkan bila PRD panjang terpotong)
 #    Tanpa key, sistem otomatis memakai generator lokal deterministik.
 
-# 5. Build asset frontend (dari folder frontend)
+# 5. Build frontend React (dari folder frontend)
 cd ../frontend
 npm install
 npm run build
-# Output build otomatis ditulis ke backend/public/build
+# Output build ditulis ke frontend/dist, dilayani server statis terpisah
 
-# 6. Jalankan server (dari folder backend)
+# 6. Jalankan server API (dari folder backend)
 cd ../backend
 php artisan serve
 ```
 
-Buka `http://localhost:8000`.
+- Backend API: `http://localhost:8000`
+- Frontend (dev): `http://localhost:5173`
+- Frontend (produksi): layani `frontend/dist` lewat web server statis (Nginx, `vite preview`, dll.)
+
+> Frontend & backend terpisah. Saat dev, Vite mem-proxy `/api` & `/oauth` ke backend (`VITE_BACKEND_URL`, default `http://localhost:8000`). Di produksi, set `VITE_API_URL` di frontend dan `APP_FRONTEND_URL` + `CORS_ALLOWED_ORIGINS` di backend.
 
 ### Akun Demo
 

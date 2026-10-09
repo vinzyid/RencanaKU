@@ -56,6 +56,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL (SPA terpisah)
+    |--------------------------------------------------------------------------
+    | URL aplikasi React. Dipakai untuk memutar balik browser setelah callback
+    | OAuth. Biarkan kosong untuk fallback ke APP_URL.
+    |
+    */
+
+    'frontend_url' => env('APP_FRONTEND_URL', env('APP_URL', 'http://localhost')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

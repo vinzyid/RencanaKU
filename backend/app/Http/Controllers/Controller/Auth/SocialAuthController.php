@@ -21,6 +21,17 @@ class SocialAuthController extends Controller
     ) {}
 
     /**
+     * URL frontend (SPA) yang terpisah dari backend. Dipakai untuk memutar
+     * balik browser ke aplikasi React setelah callback OAuth selesai.
+     */
+    private function frontendUrl(string $path = ''): string
+    {
+        $base = rtrim((string) config('app.frontend_url', config('app.url')), '/');
+
+        return $base . '/' . ltrim($path, '/');
+    }
+
+    /**
      * Redirect back to the SPA with a short-lived, single-use authorization
      * code (Masalah #11) — NOT the raw Sanctum token.
      *
@@ -33,7 +44,7 @@ class SocialAuthController extends Controller
     {
         $code = $this->codes->issue($user);
 
-        return redirect('/#oauth_code=' . urlencode($code));
+        return redirect($this->frontendUrl('/#oauth_code=' . urlencode($code)));
     }
 
     /**
@@ -149,18 +160,18 @@ class SocialAuthController extends Controller
             $email = $googleUser->getEmail();
 
             if (! $email) {
-                return redirect('/?oauth_error=' . urlencode('Akun Google tidak menyediakan email. Tidak bisa melanjutkan.'));
+                return redirect($this->frontendUrl('/?oauth_error=') . urlencode('Akun Google tidak menyediakan email. Tidak bisa melanjutkan.'));
             }
 
             $user = $this->resolveUser('google', $googleUser, $email, $googleUser->getName());
 
             return $this->codeRedirect($user);
         } catch (\DomainException $e) {
-            return redirect('/?oauth_error=' . urlencode($e->getMessage()));
+            return redirect($this->frontendUrl('/?oauth_error=') . urlencode($e->getMessage()));
         } catch (\Throwable $e) {
             Log::error('Google OAuth failed: ' . $e->getMessage(), ['exception' => $e]);
 
-            return redirect('/?oauth_error=' . urlencode('Google authentication failed. Please try again.'));
+            return redirect($this->frontendUrl('/?oauth_error=') . urlencode('Google authentication failed. Please try again.'));
         }
     }
 
@@ -183,18 +194,18 @@ class SocialAuthController extends Controller
 
             // GitHub user doesn't always have a public email, so we need to get it
             if (! $email) {
-                return redirect('/?oauth_error=' . urlencode('Akun GitHub tidak memiliki email yang bisa diakses. Pastikan ada email terverifikasi lalu coba lagi.'));
+                return redirect($this->frontendUrl('/?oauth_error=') . urlencode('Akun GitHub tidak memiliki email yang bisa diakses. Pastikan ada email terverifikasi lalu coba lagi.'));
             }
 
             $user = $this->resolveUser('github', $githubUser, $email, $githubUser->getName());
 
             return $this->codeRedirect($user);
         } catch (\DomainException $e) {
-            return redirect('/?oauth_error=' . urlencode($e->getMessage()));
+            return redirect($this->frontendUrl('/?oauth_error=') . urlencode($e->getMessage()));
         } catch (\Throwable $e) {
             Log::error('GitHub OAuth failed: ' . $e->getMessage(), ['exception' => $e]);
 
-            return redirect('/?oauth_error=' . urlencode('GitHub authentication failed. Please try again.'));
+            return redirect($this->frontendUrl('/?oauth_error=') . urlencode('GitHub authentication failed. Please try again.'));
         }
     }
 }

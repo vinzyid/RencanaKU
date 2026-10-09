@@ -3,9 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Controller\Auth\SocialAuthController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+/*
+|--------------------------------------------------------------------------
+| Web Routes (Backend API — Headless)
+|--------------------------------------------------------------------------
+| Frontend di-serve terpisah (React). Backend hanya menyediakan:
+| - Redirect OAuth (Google/GitHub) yang lalu memutar balik ke frontend.
+| Tidak ada view apa pun yang dirender di sini.
+*/
 
 // Social authentication (Google / GitHub OAuth)
 Route::get('/oauth/google', [SocialAuthController::class, 'redirectToGoogle'])->name('google.login');
