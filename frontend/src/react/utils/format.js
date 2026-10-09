@@ -86,3 +86,40 @@ export const STEPS = [
 export function stageLabel(id) {
     return STEPS.find((s) => s.id === id)?.title || 'Input Ide';
 }
+
+export function generateMarkdown(prd) {
+    if (!prd) return '';
+    const c = prd.content || {};
+    const list = (v, ordered = false) => {
+        const items = normalizeItems(v);
+        return items.map((item, i) => `${ordered ? `${i + 1}.` : '-'} ${item}`).join('\n');
+    };
+    return `# Product Requirement Document (PRD)
+## ${c.title || 'RencanaKU Project'}
+
+### 1. Ringkasan & Latar Belakang
+${c.background || ''}
+
+### 2. Tujuan & Target User
+**Target User:**
+${list(c.target_users)}
+
+**Tujuan:**
+${list(c.objectives)}
+${hasItems(c.user_stories) ? `\n**User Story:**\n${list(c.user_stories)}` : ''}
+
+### 3. Functional Requirements
+${list(c.functional_requirements, true)}
+${hasItems(c.acceptance_criteria) ? `\n**Kriteria Selesai (Acceptance Criteria):**\n${list(c.acceptance_criteria)}` : ''}
+
+### 4. Non-Functional Requirements
+${list(c.non_functional_requirements)}
+${hasItems(c.business_rules) ? `\n### 5. Aturan & Logika Bisnis\n${list(c.business_rules)}` : ''}
+${hasItems(c.mvp_scope) || hasItems(c.later_scope) ? `\n### 6. Prioritas & Lingkup\n**Fase MVP:**\n${list(c.mvp_scope)}\n\n**Ditunda:**\n${list(c.later_scope)}` : ''}
+${hasItems(c.data_entities) ? `\n### 7. Data yang Disimpan\n${list(c.data_entities)}` : ''}
+
+### 8. Batasan
+${list(c.constraints)}
+${hasItems(c.edge_cases) ? `\n**Kondisi Khusus (Edge Case):**\n${list(c.edge_cases)}` : ''}
+`;
+}
