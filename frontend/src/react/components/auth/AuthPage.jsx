@@ -6,10 +6,16 @@ import { useToast } from '../../context/ToastContext.jsx';
 import { brandLogo, sun, moon, google, github, spinner, back } from '../../utils/icons.js';
 import { API_BASE } from '../../utils/api.js';
 
+// Tentukan halaman awal setelah login: admin langsung ke console, selain itu
+// ke workspace.
+export function landingPathFor(user) {
+    return user?.is_admin ? '/admin/overview' : '/app/dashboard';
+}
+
 export default function AuthPage() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { login, isAuthenticated, oauthError } = useAuth();
+    const { login, isAuthenticated, user, oauthError } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const { showToast } = useToast();
 
@@ -19,8 +25,8 @@ export default function AuthPage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (isAuthenticated) navigate('/app/dashboard', { replace: true });
-    }, [isAuthenticated, navigate]);
+        if (isAuthenticated) navigate(landingPathFor(user), { replace: true });
+    }, [isAuthenticated, user, navigate]);
 
     useEffect(() => {
         if (oauthError) setError(oauthError);
@@ -35,8 +41,8 @@ export default function AuthPage() {
         const payload = Object.fromEntries(formData);
 
         try {
-            await login(isRegister ? '/register' : '/login', payload);
-            navigate('/app/dashboard', { replace: true });
+            const data = await login(isRegister ? '/register' : '/login', payload);
+            navigate(landingPathFor(data.user), { replace: true });
         } catch (err) {
             setError(err.message);
         } finally {

@@ -35,6 +35,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
 // Admin (hanya role admin)
 Route::middleware(['auth:sanctum', 'admin', 'throttle:api'])->prefix('admin')->group(function () {
+    Route::get('/stats', [AdminController::class, 'stats']);
+    Route::get('/green', [AdminController::class, 'green']);
+    Route::get('/users', [AdminController::class, 'users']);
     Route::get('/token-usage', [AdminController::class, 'tokenUsage']);
 });
 
