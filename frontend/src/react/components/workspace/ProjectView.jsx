@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useProject } from '../../context/ProjectContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { STEPS, stageLabel, timeAgo, nl2br, esc } from '../../utils/format.js';
-import { chevronLeft, paperclip, send } from '../../utils/icons.js';
+import { chevronLeft, paperclip, send, fileMd } from '../../utils/icons.js';
 
 function Stepper({ stage }) {
     const currentIndex = STEPS.findIndex((s) => s.id === stage);
@@ -200,7 +200,10 @@ export default function ProjectView() {
 
                     <div className="flex items-center gap-2">
                         {prd && (
-                            <button onClick={() => navigate(`/app/projects/${id}/documentation`)} className="btn-secondary text-xs px-3.5 py-1.5 font-bold flex items-center gap-1.5">📄 Lihat Dokumen PRD</button>
+                            <button onClick={() => navigate(`/app/projects/${id}/documentation`)} className="btn-secondary text-xs px-3.5 py-1.5 font-bold flex items-center gap-2">
+                                <span className="w-4 h-4 flex items-center justify-center shrink-0" dangerouslySetInnerHTML={{ __html: fileMd }} />
+                                <span>Lihat Dokumen PRD</span>
+                            </button>
                         )}
                     </div>
                 </div>

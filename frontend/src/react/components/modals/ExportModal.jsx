@@ -3,12 +3,12 @@ import { useShell } from '../../context/ShellContext.jsx';
 import { useProject } from '../../context/ProjectContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { triggerExport } from '../../utils/api.js';
-import { close, download } from '../../utils/icons.js';
+import { close, download, fileMd, fileJson, filePdf, lightbulb } from '../../utils/icons.js';
 
 const FORMATS = [
-    { value: 'md', icon: '📄', label: 'Markdown (.md)', desc: 'Format standar, cocok untuk AI agent' },
-    { value: 'json', icon: '📦', label: 'JSON (.json)', desc: 'Struktur data untuk integrasi' },
-    { value: 'pdf', icon: '📑', label: 'PDF (.pdf)', desc: 'Dokumen siap dibagikan' },
+    { value: 'md', icon: fileMd, label: 'Markdown (.md)', desc: 'Format standar, cocok untuk AI agent' },
+    { value: 'json', icon: fileJson, label: 'JSON (.json)', desc: 'Struktur data untuk integrasi' },
+    { value: 'pdf', icon: filePdf, label: 'PDF (.pdf)', desc: 'Dokumen siap dibagikan' },
 ];
 
 export default function ExportModal() {
@@ -53,7 +53,7 @@ export default function ExportModal() {
                             className={`w-full flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition text-left ${format === f.value ? 'border-[#5B4DF6] bg-indigo-50/50 dark:bg-indigo-950/40' : 'border-slate-200 dark:border-slate-800'}`}
                         >
                             <div className="flex items-center gap-3">
-                                <span className="text-xl">{f.icon}</span>
+                                <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0" dangerouslySetInnerHTML={{ __html: f.icon }} />
                                 <div>
                                     <div className="text-xs font-bold text-slate-900 dark:text-white">{f.label}</div>
                                     <div className="text-[11px] text-slate-500 dark:text-slate-400">{f.desc}</div>
@@ -69,7 +69,7 @@ export default function ExportModal() {
                 </button>
 
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2">
-                    <span>💡</span>
+                    <span className="shrink-0 mt-0.5" dangerouslySetInnerHTML={{ __html: lightbulb }} />
                     <span>PRD ini bisa digunakan ke Claude Code, Cursor, atau AI agent lainnya.</span>
                 </div>
             </div>

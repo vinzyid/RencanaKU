@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useState } from 'react';
+import { notifSuccess, notifWarning, notifInfo } from '../utils/icons.js';
 
 const ShellContext = createContext(null);
 
 const DEFAULT_NOTIFICATIONS = [
-    { id: 1, type: 'success', icon: '✅', title: 'Dokumen PRD Selesai', desc: 'Proyek terbaru Anda telah berhasil difinalisasi dan siap untuk diekspor ke PDF/Markdown.', timeAgo: 'Baru saja', isRead: false },
-    { id: 2, type: 'warning', icon: '⚠️', title: 'Ambiguitas Terdeteksi', desc: 'AI mendeteksi 2 poin requirement yang masih ambigu pada draft terbaru Anda. Mohon lakukan klarifikasi.', timeAgo: '2 jam yang lalu', isRead: false },
-    { id: 3, type: 'info', icon: '👋', title: 'Selamat Datang di RencanaKU', desc: 'Ubah ide aplikasimu menjadi spesifikasi PRD profesional dalam hitungan menit. Coba gunakan fitur Template untuk memulai!', timeAgo: '1 hari yang lalu', isRead: true },
+    { id: 1, type: 'success', icon: notifSuccess, title: 'Dokumen PRD Selesai', desc: 'Proyek terbaru Anda telah berhasil difinalisasi dan siap untuk diekspor ke PDF/Markdown.', timeAgo: 'Baru saja', isRead: false },
+    { id: 2, type: 'warning', icon: notifWarning, title: 'Ambiguitas Terdeteksi', desc: 'AI mendeteksi 2 poin requirement yang masih ambigu pada draft terbaru Anda. Mohon lakukan klarifikasi.', timeAgo: '2 jam yang lalu', isRead: false },
+    { id: 3, type: 'info', icon: notifInfo, title: 'Selamat Datang di RencanaKU', desc: 'Ubah ide aplikasimu menjadi spesifikasi PRD profesional dalam hitungan menit. Coba gunakan fitur Template untuk memulai!', timeAgo: '1 hari yang lalu', isRead: true },
 ];
 
 export function ShellProvider({ children }) {

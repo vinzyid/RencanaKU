@@ -2,11 +2,12 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useShell } from '../../context/ShellContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { userProfile, palette, lock } from '../../utils/icons.js';
 
 const TABS = [
-    { id: 'profile', label: '👤 Profil Pengguna' },
-    { id: 'preferences', label: '🎨 Preferensi Aplikasi' },
-    { id: 'security', label: '🔒 Keamanan & Sandi' },
+    { id: 'profile', label: 'Profil Pengguna', icon: userProfile },
+    { id: 'preferences', label: 'Preferensi Aplikasi', icon: palette },
+    { id: 'security', label: 'Keamanan & Sandi', icon: lock },
 ];
 
 function tabClass(active) {
@@ -29,7 +30,14 @@ export default function SettingsView() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1">
                     {TABS.map((t) => (
-                        <button key={t.id} onClick={() => shell.setSettingsTab(t.id)} className={tabClass(shell.settingsTab === t.id)}>{t.label}</button>
+                        <button
+                            key={t.id}
+                            onClick={() => shell.setSettingsTab(t.id)}
+                            className={`${tabClass(shell.settingsTab === t.id)} flex items-center gap-2.5`}
+                        >
+                            <span className="w-4 h-4 flex items-center justify-center shrink-0" dangerouslySetInnerHTML={{ __html: t.icon }} />
+                            <span>{t.label}</span>
+                        </button>
                     ))}
                 </div>
 

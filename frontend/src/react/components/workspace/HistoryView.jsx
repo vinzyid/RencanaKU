@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { timeAgo } from '../../utils/format.js';
+import { history as historyIcon } from '../../utils/icons.js';
 
 export default function HistoryView() {
     const { projects } = useAuth();
@@ -45,7 +46,7 @@ export default function HistoryView() {
 
             {events.length === 0 ? (
                 <div className="p-10 text-center flex flex-col items-center">
-                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-2xl mb-4">🕒</div>
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 mb-4" dangerouslySetInnerHTML={{ __html: historyIcon }} />
                     <h3 className="text-sm font-bold text-slate-800 dark:text-white">Belum ada riwayat</h3>
                     <p className="text-xs text-slate-500 mt-1 mb-4">Mulai proyek pertama kamu untuk melihat aktivitas di sini.</p>
                 </div>

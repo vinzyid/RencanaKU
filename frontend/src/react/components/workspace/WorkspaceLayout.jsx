@@ -6,16 +6,16 @@ import { useShell } from '../../context/ShellContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { api } from '../../utils/api.js';
 import { initialsOf, esc } from '../../utils/format.js';
-import { brandLogo, plus, search, sun, moon, bell, spinner, logout as logoutIcon } from '../../utils/icons.js';
+import { brandLogo, plus, search, sun, moon, bell, spinner, logout as logoutIcon, navDashboard, navProjects, navTemplates, navHistory, navSettings, crown, bellOff } from '../../utils/icons.js';
 import NewProjectModal from '../modals/NewProjectModal.jsx';
 import ExportModal from '../modals/ExportModal.jsx';
 
 const NAV_ITEMS = [
-    { key: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { key: 'projects', label: 'Proyek Saya', icon: '📁', match: ['projects'] },
-    { key: 'templates', label: 'Template', icon: '📋' },
-    { key: 'history', label: 'Riwayat', icon: '🕒' },
-    { key: 'settings', label: 'Pengaturan', icon: '⚙️' },
+    { key: 'dashboard', label: 'Dashboard', icon: navDashboard },
+    { key: 'projects', label: 'Proyek Saya', icon: navProjects, match: ['projects'] },
+    { key: 'templates', label: 'Template', icon: navTemplates },
+    { key: 'history', label: 'Riwayat', icon: navHistory },
+    { key: 'settings', label: 'Pengaturan', icon: navSettings },
 ];
 
 export default function WorkspaceLayout() {
@@ -68,7 +68,8 @@ export default function WorkspaceLayout() {
                                     onClick={() => navigate(`/app/${item.key}`)}
                                     className={`nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition ${active ? 'font-bold text-[#5B4DF6] bg-indigo-50 dark:bg-indigo-950/60' : 'font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
                                 >
-                                    <span className="text-base">{item.icon}</span> {item.label}
+                                    <span className="w-4 h-4 flex items-center justify-center shrink-0" dangerouslySetInnerHTML={{ __html: item.icon }} />
+                                    <span>{item.label}</span>
                                 </button>
                             );
                         })}
@@ -78,7 +79,7 @@ export default function WorkspaceLayout() {
                 <div className="p-5 border-t border-slate-100 dark:border-slate-800/80 space-y-3 shrink-0">
                     <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50/90 to-purple-50/70 dark:from-indigo-950/40 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-900/50 shadow-xs">
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm">👑</span>
+                            <span className="flex items-center" dangerouslySetInnerHTML={{ __html: crown }} />
                             <span className="text-xs font-bold text-slate-900 dark:text-white font-heading">Pro Plan</span>
                         </div>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mb-2.5">Buka semua fitur premium dan batas lebih tinggi.</p>
@@ -136,13 +137,13 @@ export default function WorkspaceLayout() {
                                         <div className="max-h-80 overflow-y-auto">
                                             {shell.notifications.length === 0 ? (
                                                 <div className="py-10 text-center flex flex-col items-center">
-                                                    <div className="text-2xl mb-2 opacity-50">🔕</div>
+                                                    <div className="mb-2 opacity-50 flex items-center justify-center" dangerouslySetInnerHTML={{ __html: bellOff }} />
                                                     <div className="text-xs text-slate-500">Belum ada notifikasi baru.</div>
                                                 </div>
                                             ) : shell.notifications.map((n) => (
                                                 <div key={n.id} className={`p-3.5 border-b border-slate-100/80 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition ${!n.isRead ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}`}>
                                                     <div className="flex gap-3.5">
-                                                        <div className="text-xl mt-0.5">{n.icon}</div>
+                                                        <div className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center shrink-0 mt-0.5" dangerouslySetInnerHTML={{ __html: n.icon }} />
                                                         <div className="flex-1 min-w-0">
                                                             <div className={`font-bold text-xs truncate ${!n.isRead ? 'text-[#5B4DF6] dark:text-[#5B4DF6]' : 'text-slate-900 dark:text-white'}`}>{n.title}</div>
                                                             <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug line-clamp-2">{n.desc}</div>

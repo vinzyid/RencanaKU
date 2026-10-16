@@ -1,4 +1,5 @@
 import { useShell } from '../../context/ShellContext.jsx';
+import { bellOff } from '../../utils/icons.js';
 
 export default function NotificationsView() {
     const shell = useShell();
@@ -23,7 +24,7 @@ export default function NotificationsView() {
 
             {notifications.length === 0 ? (
                 <div className="py-16 text-center flex flex-col items-center">
-                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-3xl mb-5 shadow-inner">🔕</div>
+                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-5 shadow-inner" dangerouslySetInnerHTML={{ __html: bellOff }} />
                     <h3 className="text-base font-bold text-slate-800 dark:text-white">Belum ada notifikasi</h3>
                     <p className="text-xs text-slate-500 mt-1 max-w-sm">Anda sudah membaca semua pemberitahuan. Kami akan memberi tahu Anda jika ada aktivitas baru.</p>
                 </div>
@@ -32,7 +33,7 @@ export default function NotificationsView() {
                     {notifications.map((notif) => (
                         <div key={notif.id} className={`relative bg-white dark:bg-[#121624] border ${notif.isRead ? 'border-slate-200/60 dark:border-slate-800/60' : 'border-[#5B4DF6]/30 dark:border-[#5B4DF6]/40'} rounded-2xl p-5 sm:p-6 flex gap-4 sm:gap-5 transition hover:shadow-md group`}>
                             {!notif.isRead && <div className="absolute top-5 right-5 w-2.5 h-2.5 bg-[#5B4DF6] rounded-full shadow-[0_0_8px_rgba(91,77,246,0.5)]" />}
-                            <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center text-xl sm:text-2xl ${notif.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500' : notif.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500'}`}>{notif.icon}</div>
+                            <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center ${notif.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20' : notif.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-indigo-50 dark:bg-indigo-900/20'}`} dangerouslySetInnerHTML={{ __html: notif.icon }} />
                             <div className="flex-1 min-w-0 pr-6">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 mb-1">
                                     <h3 className={`font-bold text-sm text-slate-900 dark:text-white truncate ${!notif.isRead ? 'font-extrabold' : ''}`}>{notif.title}</h3>

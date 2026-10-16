@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useShell } from '../../context/ShellContext.jsx';
 import { timeAgo } from '../../utils/format.js';
-import { plus } from '../../utils/icons.js';
+import { plus, statFolder, statHourglass, statCheckCircle, statAlertTriangle, statFolderOpen } from '../../utils/icons.js';
 
 export default function DashboardView() {
     const { user, projects } = useAuth();
@@ -18,10 +18,10 @@ export default function DashboardView() {
         .slice(0, 5);
 
     const stats = [
-        { icon: '📁', color: 'bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6]', label: 'Total Proyek', value: totalProjects },
-        { icon: '⏳', color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-500', label: 'Dalam Proses', value: draftProjects },
-        { icon: '✅', color: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-500', label: 'PRD Selesai', value: finalizedProjects },
-        { icon: '⚠️', color: 'bg-rose-50 dark:bg-rose-950/60 text-rose-500', label: 'Kontradiksi Ditemukan', value: 0 },
+        { icon: statFolder, color: 'bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6]', label: 'Total Proyek', value: totalProjects },
+        { icon: statHourglass, color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-500', label: 'Dalam Proses', value: draftProjects },
+        { icon: statCheckCircle, color: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-500', label: 'PRD Selesai', value: finalizedProjects },
+        { icon: statAlertTriangle, color: 'bg-rose-50 dark:bg-rose-950/60 text-rose-500', label: 'Kontradiksi Ditemukan', value: 0 },
     ];
 
     return (
@@ -39,7 +39,7 @@ export default function DashboardView() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((s) => (
                     <div key={s.label} className="bg-white dark:bg-[#121624] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl ${s.color} flex items-center justify-center text-xl`}>{s.icon}</div>
+                        <div className={`w-12 h-12 rounded-xl ${s.color} flex items-center justify-center`} dangerouslySetInnerHTML={{ __html: s.icon }} />
                         <div>
                             <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">{s.label}</div>
                             <div className="text-2xl font-extrabold text-slate-900 dark:text-white font-heading">{s.value}</div>
@@ -91,7 +91,7 @@ export default function DashboardView() {
                     </div>
                 ) : (
                     <div className="p-10 text-center flex flex-col items-center">
-                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-2xl mb-4">📂</div>
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4" dangerouslySetInnerHTML={{ __html: statFolderOpen }} />
                         <h3 className="text-sm font-bold text-slate-800 dark:text-white">Belum ada proyek</h3>
                         <p className="text-xs text-slate-500 mt-1 mb-4">Mulai rancang ide kamu sekarang juga.</p>
                         <button onClick={() => shell.openNewProjectModal()} className="btn-primary text-xs px-4 py-2 font-bold shadow-sm">Buat Proyek Pertama</button>
