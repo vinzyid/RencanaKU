@@ -16,7 +16,10 @@ const TESTIMONIALS = [
 
 const FAQS = [
     { q: 'Apa itu RencanaKU?', a: 'RencanaKU adalah platform berbasis AI untuk membantu kamu membuat dokumen Product Requirement Document (PRD) yang jelas dan siap dieksekusi.' },
-    { q: 'Apakah bisa langsung diekspor ke PDF/Markdown?', a: 'Ya, hasil PRD dapat diekspor secara instan dalam format Markdown maupun PDF resmi.' },
+    { q: 'Bagaimana cara kerja deteksi ambiguitas dan kontradiksi?', a: 'Sistem AI menganalisis setiap poin requirement untuk menemukan logika yang ambigu atau saling bertentangan, lalu memberi peringatan serta saran perbaikan sebelum spesifikasi dieksekusi.' },
+    { q: 'Apakah hasil PRD bisa langsung dipakai untuk AI coding agent seperti Cursor atau Claude?', a: 'Tentu saja! Dokumen PRD diformat secara terstruktur dengan standar industri yang rapi, sehingga siap diumpankan langsung sebagai context prompt ke Cursor, Claude Code, Windsurf, maupun tim developer.' },
+    { q: 'Apakah riwayat perubahan dan versi PRD tersimpan secara otomatis?', a: 'Ya, setiap iterasi dan pembaruan PRD dicatat dalam histori revisi terstruktur dengan penomoran versi (v1.0, v1.1, dst.), memudahkan kamu melacak perkembangan ide atau kembali ke versi sebelumnya.' },
+    { q: 'Apakah bisa langsung diekspor ke PDF/Markdown?', a: 'Ya, hasil PRD dapat diekspor secara instan dalam format Markdown maupun file dokumen PDF resmi lengkap dengan tata letak profesional.' },
 ];
 
 function SectionHeading({ kicker, title, subtitle }) {
@@ -99,7 +102,7 @@ export function FaqSection() {
             </div>
             <div className="space-y-4">
                 {FAQS.map((f) => (
-                    <div key={f.q} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div key={f.q} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:border-indigo-200 dark:hover:border-indigo-900/50 hover:shadow-md transition">
                         <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-1">{f.q}</h4>
                         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{f.a}</p>
                     </div>
