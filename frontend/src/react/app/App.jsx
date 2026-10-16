@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import LandingPage from '../components/landing/LandingPage.jsx';
 import AuthPage from '../components/auth/AuthPage.jsx';
+import ForgotPasswordPage from '../components/auth/ForgotPasswordPage.jsx';
+import ResetPasswordPage from '../components/auth/ResetPasswordPage.jsx';
 import WorkspaceLayout from '../components/workspace/WorkspaceLayout.jsx';
 import DashboardView from '../components/workspace/DashboardView.jsx';
 import ProjectsView from '../components/workspace/ProjectsView.jsx';
@@ -47,6 +49,8 @@ export default function App() {
         <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route
                 path="/app"
                 element={

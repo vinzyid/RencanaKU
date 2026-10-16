@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
-import { useToast } from '../../context/ToastContext.jsx';
 import { brandLogo, sun, moon, google, github, spinner, back } from '../../utils/icons.js';
 import { API_BASE } from '../../utils/api.js';
 
@@ -17,7 +16,6 @@ export default function AuthPage() {
     const navigate = useNavigate();
     const { login, isAuthenticated, user, oauthError } = useAuth();
     const { theme, toggleTheme } = useTheme();
-    const { showToast } = useToast();
 
     const [isRegister, setIsRegister] = useState(location.state?.mode === 'register');
     const [showPwd, setShowPwd] = useState(false);
@@ -96,7 +94,7 @@ export default function AuthPage() {
                                 <div className="flex items-center justify-between mb-1.5">
                                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
                                     {!isRegister && (
-                                        <button type="button" onClick={() => showToast('Fitur lupa password akan segera hadir. 🚧', 'info')} className="text-xs font-semibold text-[#5B4DF6] hover:underline">Lupa password?</button>
+                                        <button type="button" onClick={() => navigate('/forgot-password')} className="text-xs font-semibold text-[#5B4DF6] hover:underline">Lupa password?</button>
                                     )}
                                 </div>
                                 <div className="relative">

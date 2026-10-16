@@ -37,6 +37,16 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('ai-messages', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?? $request->ip());
         });
+
+        // Permintaan email atur ulang kata sandi (anti spam/email bombing).
+        RateLimiter::for('password-email', function (Request $request) {
+            return Limit::perMinute(3)->by($request->input('email').'|'.$request->ip());
+        });
+
+        // Percobaan submit atur ulang kata sandi.
+        RateLimiter::for('password-reset', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
     }
 }
 

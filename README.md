@@ -17,6 +17,7 @@ Berbeda dari platform "prompt-to-code" yang langsung generate kode dari satu pro
 - **AI Provider Fallback** — chain berlapis: **OpenRouter → Gemini → generator lokal deterministik**. Kolom `ai_provider` mencatat provider yang berhasil.
 - **Finalisasi & Export** — export PRD final ke **Markdown**, **JSON**, dan **PDF**.
 - **Model Hybrid Stepper + Chat** — stepper 5 tahap permanen di atas layar, sementara interaksi di dalamnya berupa chat thread berkelanjutan yang tidak reset antar tahap.
+- **Lupa & Setel Kata Sandi** — reset kata sandi lewat tautan email (Gmail SMTP), plus setel kata sandi untuk akun OAuth Google/GitHub dari halaman Pengaturan.
 
 ---
 
@@ -64,6 +65,8 @@ State machine status PRD: `draft` → (ambiguitas/kontradiksi baru dari edit →
 - `ambiguity_flags` — ambiguitas per versi (`code`, `question`, `is_resolved`, `resolution_answer`).
 - `contradiction_flags` — kontradiksi per versi (`requirement_a`, `requirement_b`, `explanation`, `resolution`).
 - `personal_access_tokens` — token Sanctum.
+- `password_reset_tokens` — token sekali-pakai untuk reset kata sandi (berlaku 60 menit).
+- Kolom `users.password_set_at` — menandai akun yang sudah punya kata sandi terpakai (akun OAuth bernilai `NULL` sampai user mengeset kata sandinya).
 
 Relasi: `User` hasMany `Project` → hasMany `Message`, `PrdVersion` → hasMany `AmbiguityFlag`, `ContradictionFlag`.
 
@@ -71,14 +74,17 @@ Relasi: `User` hasMany `Project` → hasMany `Message`, `PrdVersion` → hasMany
 
 ## Endpoint API
 
-Base URL: `/api`. Semua endpoint selain register/login dilindungi `auth:sanctum` (Bearer token).
+Base URL: `/api`. Semua endpoint selain `register`, `login`, `forgot-password`, dan `reset-password` dilindungi `auth:sanctum` (Bearer token).
 
 | Method | Endpoint | Fungsi |
 |--------|----------|--------|
 | POST | `/register` | Registrasi user |
 | POST | `/login` | Login, dapat token Sanctum |
+| POST | `/forgot-password` | Kirim tautan atur ulang kata sandi ke email (publik) |
+| POST | `/reset-password` | Setel ulang kata sandi memakai token dari email (publik) |
 | POST | `/logout` | Logout (hapus token aktif) |
 | GET | `/me` | Data user yang sedang login |
+| POST | `/password` | Ganti / setel kata sandi user yang sedang login |
 | GET | `/projects` | List proyek milik user |
 | POST | `/projects` | Buat proyek baru (prompt awal opsional) |
 | GET | `/projects/{id}` | Detail proyek + thread chat + PRD terbaru + diff + stage |
@@ -169,6 +175,53 @@ npm run dev
 > memantau progres lewat status proyek.
 
 > Jika baru mengubah config atau `.env`, jalankan `php artisan config:clear` lalu hard-refresh browser (`Ctrl + Shift + R`).
+
+---
+
+## Konfigurasi Email (Fitur Lupa Kata Sandi)
+
+Fitur **Lupa Kata Sandi** mengirim tautan atur ulang ke email user. Pengiriman
+memakai konfigurasi `MAIL_*` pada `backend/.env`.
+
+### Gmail SMTP (untuk alamat `@gmail.com`)
+
+1. Aktifkan **Verifikasi 2 Langkah** di akun Google Anda.
+2. Buat **App Password** (16 karakter) di <https://myaccount.google.com/apppasswords>.
+3. Isi `backend/.env`:
+
+```env
+MAIL_MAILER=failover
+MAIL_SCHEME=null
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=alamat-anda@gmail.com
+MAIL_PASSWORD=app-password-16-karakter
+MAIL_FROM_ADDRESS="alamat-anda@gmail.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+> `MAIL_MAILER=failover` mencoba **SMTP Gmail** lebih dulu; bila kredensial belum
+> diisi atau gagal, tautan reset otomatis ditulis ke
+> `backend/storage/logs/laravel.log` sehingga alur tetap bisa diuji. Untuk
+> produksi murni Gmail, set `MAIL_MAILER=smtp`.
+>
+> Setelah mengubah `.env`, jalankan `php artisan config:clear`.
+
+### Alur Reset Kata Sandi
+
+1. User klik **"Lupa password?"** di halaman masuk → halaman `/forgot-password`.
+2. Backend membuat token di tabel `password_reset_tokens` lalu mengirim email
+   berisi tautan `{APP_FRONTEND_URL}/reset-password?token=...&email=...`.
+   Untuk alamat Gmail, email masuk ke inbox Gmail (cek juga folder Spam/Promotions).
+3. User membuka tautan → halaman `/reset-password` → mengisi kata sandi baru.
+4. Backend memvalidasi token, menyimpan kata sandi baru (`users.password_set_at`
+   diisi), lalu **mencabut semua sesi/token lama**. User diarahkan masuk kembali.
+
+Tautan berlaku **60 menit** dan hanya dapat dipakai **sekali**.
+
+> Akun yang mendaftar lewat **Google/GitHub OAuth** tidak punya kata sandi
+> terpakai. Mereka bisa memakai alur di atas untuk **membuat** kata sandi
+> pertama, atau menyetelnya dari **Pengaturan → Keamanan & Sandi**.
 
 ---
 

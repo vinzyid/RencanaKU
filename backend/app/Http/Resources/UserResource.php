@@ -23,6 +23,9 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'auth_provider' => $this->auth_provider,
+            // Apakah akun sudah punya kata sandi terpakai. Dipakai frontend
+            // untuk menentukan perlu-tidaknya meminta kata sandi lama.
+            'has_password' => $this->hasPassword(),
             // Flag turunan, bukan nilai role mentah. Aman untuk konsumsi
             // frontend karena hanya menyatakan "user ini admin atau bukan".
             'is_admin' => $this->isAdmin(),

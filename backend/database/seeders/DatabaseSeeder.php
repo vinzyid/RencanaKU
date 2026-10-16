@@ -10,6 +10,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Akun admin utama (login manual + Google). Lihat AdminUserSeeder.
+        $this->call(AdminUserSeeder::class);
+
         $admin = User::updateOrCreate(
             ['email' => 'admin@rencanaku.test'],
             ['name' => 'Admin RencanaKU', 'password' => 'admin12345']
