@@ -1,11 +1,11 @@
-import { arrowRight, play } from '../../utils/icons.js';
+import { arrowRight, play, chatQuestion, searchAlert, lightning, history } from '../../utils/icons.js';
 import { STEPS } from '../../utils/format.js';
 
 const FEATURES = [
-    { icon: '💬', title: 'Klarifikasi Pintar', desc: 'AI akan mengajukan pertanyaan terarah untuk memperjelas ide dasar kamu secara bertahap.' },
-    { icon: '🔍', title: 'Deteksi Ambiguitas', desc: 'Menemukan requirement yang masih samar atau ambigu sebelum masuk ke tahap pengodean.' },
-    { icon: '⚡', title: 'Pengecekan Kontradiksi', desc: 'Memastikan tidak ada dua aturan spesifikasi yang bertentangan satu sama lain.' },
-    { icon: '📜', title: 'Histori & Versioning', desc: 'Simpan setiap iterasi perubahan PRD secara terstruktur dengan fitur penomoran versi unik.' },
+    { icon: chatQuestion, title: 'Klarifikasi Pintar', desc: 'AI akan mengajukan pertanyaan terarah untuk memperjelas ide dasar kamu secara bertahap.' },
+    { icon: searchAlert, title: 'Deteksi Ambiguitas', desc: 'Menemukan requirement yang masih samar atau ambigu sebelum masuk ke tahap pengodean.' },
+    { icon: lightning, title: 'Pengecekan Kontradiksi', desc: 'Memastikan tidak ada dua aturan spesifikasi yang bertentangan satu sama lain.' },
+    { icon: history, title: 'Histori & Versioning', desc: 'Simpan setiap iterasi perubahan PRD secara terstruktur dengan fitur penomoran versi unik.' },
 ];
 
 const TESTIMONIALS = [
@@ -39,8 +39,11 @@ export function FiturSection() {
             />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {FEATURES.map((f) => (
-                    <div key={f.title} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-200 transition group">
-                        <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">{f.icon}</div>
+                    <div key={f.title} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800/60 transition group">
+                        <div
+                            className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] dark:text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-[#5B4DF6] group-hover:text-white transition duration-300"
+                            dangerouslySetInnerHTML={{ __html: f.icon }}
+                        />
                         <h3 className="font-bold text-slate-900 dark:text-white text-base mb-2 font-heading">{f.title}</h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{f.desc}</p>
                     </div>
