@@ -39,14 +39,18 @@ export async function api(path, options = {}) {
                 message = 'Sesi kadaluarsa. Silakan muat ulang halaman.';
             } else if (response.status === 401) {
                 message = 'Sesi tidak valid. Silakan login ulang.';
-                unauthorizedHandler();
             } else if (response.status === 422) {
                 message = data?.errors ? Object.values(data.errors).flat().join(', ') : 'Data tidak valid.';
             } else {
                 message = `Terjadi kesalahan (${response.status}).`;
             }
         }
-        throw new Error(message);
+        // Logout hanya bila token yang ditolak adalah token yang sedang aktif,
+        // agar respons 401 dari request lama tidak menghapus sesi yang baru.
+        if (response.status === 401) unauthorizedHandler(token);
+        const error = new Error(message);
+        error.status = response.status;
+        throw error;
     }
 
     return data;

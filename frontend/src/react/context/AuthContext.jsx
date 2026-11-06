@@ -3,6 +3,9 @@ import { api, configureApi, STORAGE_KEY, API_BASE } from '../utils/api.js';
 
 const AuthContext = createContext(null);
 
+const PROFILE_RETRIES = 2;
+const PROFILE_RETRY_DELAY_MS = 2000;
+
 export function AuthProvider({ children }) {
     const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY));
     const [user, setUser] = useState(null);
@@ -32,7 +35,9 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         configureApi({
             getToken: () => tokenRef.current,
-            onUnauthorized: () => logout(),
+            onUnauthorized: (rejectedToken) => {
+                if (rejectedToken && rejectedToken === tokenRef.current) logout();
+            },
         });
     }, [logout]);
 
@@ -43,8 +48,12 @@ export function AuthProvider({ children }) {
     }, [setSession]);
 
     const loadProfile = useCallback(async () => {
-        const [meRes, projectsRes] = await Promise.all([api('/me'), api('/projects')]);
-        setUser(meRes.user);
+        // Nama pengguna ditampilkan begitu /me selesai, tanpa menunggu /projects.
+        const mePromise = api('/me').then((res) => {
+            setUser(res.user);
+            return res;
+        });
+        const [meRes, projectsRes] = await Promise.all([mePromise, api('/projects')]);
         setProjects(projectsRes.projects || []);
         return { user: meRes.user, projects: projectsRes.projects || [] };
     }, []);
@@ -98,13 +107,21 @@ export function AuthProvider({ children }) {
         let cancelled = false;
         setBootstrapping(true);
         (async () => {
-            try {
-                await loadProfile();
-            } catch {
-                if (!cancelled) logout();
-            } finally {
-                if (!cancelled) setBootstrapping(false);
+            // Gangguan sementara (jaringan, 5xx, 429) dicoba ulang dan tidak
+            // menghapus sesi. Hanya 401 (token ditolak) yang berarti logout,
+            // dan itu sudah ditangani oleh onUnauthorized di atas.
+            for (let attempt = 0; attempt <= PROFILE_RETRIES && !cancelled; attempt++) {
+                try {
+                    await loadProfile();
+                    break;
+                } catch (error) {
+                    if (cancelled || error?.status === 401) break;
+                    if (attempt < PROFILE_RETRIES) {
+                        await new Promise((resolve) => setTimeout(resolve, PROFILE_RETRY_DELAY_MS));
+                    }
+                }
             }
+            if (!cancelled) setBootstrapping(false);
         })();
         return () => { cancelled = true; };
     }, [token, loadProfile, logout]);
