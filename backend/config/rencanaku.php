@@ -64,6 +64,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Akun Admin untuk Seeder
+    |--------------------------------------------------------------------------
+    | Dipakai oleh AdminUserSeeder. Sengaja dibaca dari .env (bukan ditulis di
+    | kode) karena repo bersifat publik. Bila kosong, seeder dilewati.
+    */
+    'admin_seed' => [
+        'email' => env('ADMIN_SEED_EMAIL'),
+        'password' => env('ADMIN_SEED_PASSWORD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Green Computing (Estimasi Dampak Lingkungan)
     |--------------------------------------------------------------------------
     | Koefisien untuk mengestimasi listrik, karbon, dan air dari pemakaian

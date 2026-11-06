@@ -19,8 +19,22 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = 'cuiriostexa@gmail.com';
-        $password = 'Curious12345678';
+        // Kredensial dibaca dari .env (ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD),
+        // jangan pernah ditulis langsung di kode: repo ini publik.
+        $email = trim((string) config('rencanaku.admin_seed.email'));
+        $password = (string) config('rencanaku.admin_seed.password');
+
+        if ($email === '' || $password === '') {
+            $this->command?->warn('AdminUserSeeder dilewati: isi ADMIN_SEED_EMAIL dan ADMIN_SEED_PASSWORD di .env terlebih dahulu.');
+
+            return;
+        }
+
+        if (mb_strlen($password) < 8) {
+            $this->command?->warn('AdminUserSeeder dilewati: ADMIN_SEED_PASSWORD minimal 8 karakter.');
+
+            return;
+        }
 
         $user = User::firstOrNew(['email' => $email]);
 
