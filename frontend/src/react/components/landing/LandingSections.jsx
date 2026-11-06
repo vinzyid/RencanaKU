@@ -60,6 +60,7 @@ export function FiturSection() {
 }
 
 export function CaraKerjaSection() {
+    const [activeStep, setActiveStep] = useState(null);
     const stepDetails = [
         'Tuangkan ide awal, masalah yang ingin diselesaikan, dan siapa pengguna utamanya. Tidak perlu rapi—mulai saja dari gambaran besarnya.',
         'AI mengajukan pertanyaan yang relevan untuk menggali tujuan, fitur, alur pengguna, serta batasan proyek secara bertahap.',
@@ -68,62 +69,113 @@ export function CaraKerjaSection() {
         'Unduh PRD dalam format yang siap dibagikan atau langsung digunakan sebagai konteks untuk AI coding agent pilihanmu.',
     ];
 
+    // Setiap koneksi panah punya karakter kurva & warna yang berbeda-beda.
+    const arrowVariants = [
+        { d: 'M6 36 C 28 36, 28 132, 54 108', hue: '#818CF8', head: 'M54 108 L 46 100 M54 108 L 55 96' },
+        { d: 'M6 108 C 22 108, 38 28, 54 36', hue: '#A78BFA', head: 'M54 36 L 46 44 M54 36 L 55 48' },
+        { d: 'M6 36 C 16 120, 38 8, 54 108', hue: '#6366F1', head: 'M54 108 L 46 100 M54 108 L 55 96' },
+        { d: 'M6 108 C 30 108, 26 44, 54 36', hue: '#8B5CF6', head: 'M54 36 L 46 44 M54 36 L 55 48' },
+    ];
+
     return (
         <main className="flex-1 max-w-7xl mx-auto px-6 py-12 flex flex-col justify-center animate-fadeIn">
-            <div className="text-center max-w-2xl mx-auto mb-10">
+            <div className="text-center max-w-2xl mx-auto mb-12">
                 <span className="text-xs font-bold uppercase tracking-widest text-[#5B4DF6] mb-2 block font-heading">Cara Kerja</span>
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white font-heading">5 Langkah Mudah Menuju PRD Sempurna</h2>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-3">Dari ide yang masih mentah hingga dokumen siap eksekusi—ikuti alurnya dan biarkan RencanaKU merapikan sisanya.</p>
             </div>
-            <div className="relative grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-7">
-                {STEPS.map((s, idx) => (
-                    <div key={s.id} className="relative group">
-                        <div className="h-full bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 text-center flex flex-col items-center shadow-sm hover:-translate-y-2 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all duration-300">
-                            <div className="relative w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] font-extrabold text-base flex items-center justify-center mb-4 group-hover:bg-[#5B4DF6] group-hover:text-white group-hover:rotate-6 transition-all duration-300">
-                                {idx + 1}
-                                <span className="absolute -inset-1 rounded-2xl border border-indigo-200/0 group-hover:border-indigo-300/60 group-hover:scale-125 transition-all duration-500" />
-                            </div>
-                            <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-2 font-heading">{s.title}</h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{stepDetails[idx]}</p>
-                        </div>
-                        {idx < STEPS.length - 1 && (
-                            <svg
-                                className="hidden md:block absolute -right-7 top-1/2 -translate-y-1/2 z-10 pointer-events-none overflow-visible"
-                                width="56"
-                                height="180"
-                                viewBox="0 0 56 180"
-                                fill="none"
-                                aria-hidden="true"
+
+            <div className="relative grid grid-cols-1 md:grid-cols-5 md:gap-8">
+                {STEPS.map((s, idx) => {
+                    const isUp = idx % 2 === 0; // kartu berselang: ganjil di atas, genap turun
+                    const isActive = activeStep === idx;
+                    return (
+                        <div key={s.id} className="relative">
+                            <div
+                                className={`step-card h-full bg-white dark:bg-slate-900 p-5 rounded-3xl border text-center flex flex-col items-center shadow-sm transition-all duration-300 card-enter cursor-default ${isActive
+                                        ? 'border-indigo-300 dark:border-indigo-600 -translate-y-1.5 shadow-xl shadow-indigo-500/15'
+                                        : 'border-slate-100 dark:border-slate-800 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 dark:hover:border-indigo-800'
+                                    } ${isUp ? 'md:mt-0' : 'md:mt-16'}`}
+                                style={{ animationDelay: `${idx * 130}ms` }}
+                                onMouseEnter={() => setActiveStep(idx)}
+                                onMouseLeave={() => setActiveStep((cur) => (cur === idx ? null : cur))}
+                                tabIndex={0}
+                                onFocus={() => setActiveStep(idx)}
+                                onBlur={() => setActiveStep((cur) => (cur === idx ? null : cur))}
                             >
-                                <defs>
-                                    <linearGradient id={`arrowGrad${idx}`} x1="0" y1="0" x2="56" y2="180" gradientUnits="userSpaceOnUse">
-                                        <stop stopColor="#818CF8" />
-                                        <stop offset="0.5" stopColor="#5B4DF6" />
-                                        <stop offset="1" stopColor="#818CF8" />
-                                    </linearGradient>
-                                </defs>
-                                <path
-                                    d="M4 30 C 40 30, 44 90, 28 130 C 20 148, 36 158, 46 150"
-                                    stroke={`url(#arrowGrad${idx})`}
-                                    strokeWidth="3.5"
-                                    strokeLinecap="round"
-                                    strokeDasharray="7 6"
-                                    className="workflow-arrow"
-                                    style={{ animationDelay: `${idx * 0.18}s` }}
-                                />
-                                <path
-                                    d="M46 150 L 40 138 M46 150 L 52 140"
-                                    stroke="#5B4DF6"
-                                    strokeWidth="3.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="workflow-arrow"
-                                    style={{ animationDelay: `${idx * 0.18}s` }}
-                                />
-                            </svg>
-                        )}
-                    </div>
-                ))}
+                                <div className="relative mb-4">
+                                    {/* Hexagon nomor langkah */}
+                                    <div className={`relative w-12 h-12 flex items-center justify-center transition-transform duration-300 ${isActive ? 'rotate-3' : ''}`}>
+                                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                                            <polygon
+                                                points="24,2 45,13 45,35 24,46 3,35 3,13"
+                                                className={isActive ? 'fill-[#5B4DF6]' : 'fill-indigo-50 dark:fill-indigo-950/60'}
+                                                stroke={isActive ? '#4E3FE3' : '#C7D2FE'}
+                                                strokeWidth="1.5"
+                                            />
+                                            <polygon
+                                                points="24,2 45,13 45,35 24,46 3,35 3,13"
+                                                fill="none"
+                                                stroke="#5B4DF6"
+                                                strokeWidth="2"
+                                                strokeDasharray="60 200"
+                                                strokeLinecap="round"
+                                                className={`workflow-arrow transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0'}`}
+                                                style={{ animationDuration: '2.4s' }}
+                                            />
+                                        </svg>
+                                        <span className={`relative font-extrabold text-base font-heading transition-colors duration-300 ${isActive ? 'text-white' : 'text-[#5B4DF6] dark:text-indigo-300'}`}>
+                                            {idx + 1}
+                                        </span>
+                                    </div>
+                                </div>
+                                <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-2 font-heading">{s.title}</h4>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{stepDetails[idx]}</p>
+                            </div>
+
+                            {idx < STEPS.length - 1 && (
+                                <svg
+                                    className="hidden md:block absolute top-1/2 -translate-y-1/2 -right-9 z-10 pointer-events-none overflow-visible"
+                                    width="64"
+                                    height="180"
+                                    viewBox="0 0 64 180"
+                                    fill="none"
+                                    aria-hidden="true"
+                                >
+                                    <defs>
+                                        <linearGradient id={`stepGrad${idx}`} x1="0" y1="0" x2="64" y2="180" gradientUnits="userSpaceOnUse">
+                                            <stop stopColor={arrowVariants[idx].hue} stopOpacity="0.35" />
+                                            <stop offset="0.5" stopColor={arrowVariants[idx].hue} />
+                                            <stop offset="1" stopColor={arrowVariants[idx].hue} stopOpacity="0.35" />
+                                        </linearGradient>
+                                    </defs>
+                                    <path
+                                        d={arrowVariants[idx].d}
+                                        stroke={`url(#stepGrad${idx})`}
+                                        strokeWidth="3"
+                                        strokeLinecap="round"
+                                        strokeDasharray="8 7"
+                                        className={`workflow-arrow transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-50'}`}
+                                        style={{ animationDelay: `${idx * 0.22}s` }}
+                                    />
+                                    <path
+                                        d={arrowVariants[idx].head}
+                                        stroke={arrowVariants[idx].hue}
+                                        strokeWidth="3"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className={`transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-50'}`}
+                                    />
+                                </svg>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Rel alur tipis di bawah sebagai pemandu visual */}
+            <div className="hidden md:block relative mt-6 h-px">
+                <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/50 dark:via-indigo-800/40 to-transparent" />
             </div>
         </main>
     );
