@@ -165,19 +165,20 @@ h1, h2, h3, h4, .font-heading {
     color: var(--brand-primary);
 }
 
-.brand-badge {
-    background: var(--brand-primary);
-    color: #FFFFFF;
+.brand-logo {
     width: 2.25rem;
     height: 2.25rem;
-    border-radius: 0.625rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-family: var(--font-heading);
-    font-size: 1.25rem;
-    box-shadow: 0 4px 12px rgba(91, 77, 246, 0.3);
+    object-fit: contain;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.brand-logo-small {
+    width: 1.75rem;
+    height: 1.75rem;
+    object-fit: contain;
+    display: inline-block;
+    flex-shrink: 0;
 }
 
 /* Animations */

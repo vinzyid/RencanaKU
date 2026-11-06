@@ -1,6 +1,10 @@
-export const brandLogo = `<div class="brand-badge"><span class="tracking-tighter">R</span></div>`;
+import logoAsset from '../../../logo/Logo Revisi Abyan Suka Warna Ungu.png';
 
-export const brandLogoSmall = `<div class="w-7 h-7 rounded-lg bg-[#5B4DF6] text-white flex items-center justify-center font-extrabold text-sm shadow-md">R</div>`;
+// Shared brand marks used across landing, auth, workspace, admin, modal, and PRD preview views.
+// `brandLogo` (36px) dipakai di header/sidebar; `brandLogoSmall` (28px) dipakai di modal & PRD preview.
+export const brandLogo = `<img src="${logoAsset}" alt="RencanaKU" class="brand-logo" />`;
+
+export const brandLogoSmall = `<img src="${logoAsset}" alt="RencanaKU" class="brand-logo-small" />`;
 
 export const sun = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`;
 

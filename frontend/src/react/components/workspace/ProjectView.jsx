@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useProject } from '../../context/ProjectContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { STEPS, stageLabel, timeAgo, nl2br, esc } from '../../utils/format.js';
-import { chevronLeft, paperclip, send, fileMd } from '../../utils/icons.js';
+import { chevronLeft, paperclip, send, fileMd, check, spinner } from '../../utils/icons.js';
 
 function Stepper({ stage }) {
     const currentIndex = STEPS.findIndex((s) => s.id === stage);
@@ -118,10 +118,11 @@ export default function ProjectView() {
     const { refreshProjects } = useAuth();
     const { showToast } = useToast();
     const project = useProject();
-    const { project: current, messages, stage, prd, isAiTyping, sendMessage, openProject, resetProjectState } = project;
+    const { project: current, messages, stage, prd, validation, isAiTyping, sendMessage, openProject, resetProjectState, finalize, pollProjectUntilIdle } = project;
 
     const [input, setInput] = useState('');
     const [error, setError] = useState('');
+    const [isFinalizing, setIsFinalizing] = useState(false);
     const threadRef = useRef(null);
 
     useEffect(() => {
@@ -180,6 +181,22 @@ export default function ProjectView() {
         navigate('/app/dashboard');
     };
 
+    const isFinalized = prd?.status === 'finalized';
+    const canFinalize = validation?.can_finalize;
+
+    const handleFinalize = async () => {
+        setIsFinalizing(true);
+        try {
+            const data = await finalize();
+            if (data.prd_status === 'processing') await pollProjectUntilIdle(current.id);
+            refreshProjects().catch(() => {});
+        } catch (err) {
+            showToast(err.message || 'Gagal melakukan finalisasi PRD.', 'error');
+        } finally {
+            setIsFinalizing(false);
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-5xl mx-auto">
             <div className="bg-white dark:bg-[#121624] p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
@@ -199,6 +216,16 @@ export default function ProjectView() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {!isFinalized && canFinalize && (
+                            <button
+                                onClick={handleFinalize}
+                                disabled={isFinalizing}
+                                className="btn-primary text-[11px] px-3.5 py-1.5 font-bold flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 border-emerald-500 shadow-emerald-500/25 dark:bg-emerald-600 dark:hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                <span className="w-4 h-4 flex items-center justify-center shrink-0" dangerouslySetInnerHTML={{ __html: isFinalizing ? spinner : check }} />
+                                <span>{isFinalizing ? 'Memproses...' : 'Finalisasi PRD'}</span>
+                            </button>
+                        )}
                         {prd && (
                             <button onClick={() => navigate(`/app/projects/${id}/documentation`)} className="btn-secondary text-xs px-3.5 py-1.5 font-bold flex items-center gap-2">
                                 <span className="w-4 h-4 flex items-center justify-center shrink-0" dangerouslySetInnerHTML={{ __html: fileMd }} />
