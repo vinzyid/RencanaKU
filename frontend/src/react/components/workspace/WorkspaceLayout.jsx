@@ -6,7 +6,7 @@ import { useShell } from '../../context/ShellContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { api } from '../../utils/api.js';
 import { initialsOf, esc } from '../../utils/format.js';
-import { brandLogo, plus, search, sun, moon, bell, spinner, logout as logoutIcon, navDashboard, navProjects, navTemplates, navHistory, navSettings, crown, bellOff } from '../../utils/icons.js';
+import { brandLogo, plus, search, sun, moon, bell, spinner, logout as logoutIcon, navHome, navDashboard, navProjects, navTemplates, navHistory, navSettings, crown, bellOff } from '../../utils/icons.js';
 import NewProjectModal from '../modals/NewProjectModal.jsx';
 import ExportModal from '../modals/ExportModal.jsx';
 
@@ -50,10 +50,10 @@ export default function WorkspaceLayout() {
         <div className="min-h-screen bg-[#F8F9FD] dark:bg-[#0B0D14] text-slate-800 dark:text-slate-100 flex flex-col md:flex-row transition-colors">
             <aside className="w-full md:w-64 bg-white dark:bg-[#121624] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 md:h-screen md:sticky md:top-0">
                 <div className="p-5 overflow-y-auto">
-                    <div className="flex items-center gap-3 mb-6">
+                    <button onClick={() => navigate('/')} className="flex items-center gap-3 mb-6" title="Kembali ke Landing Page">
                         <span dangerouslySetInnerHTML={{ __html: brandLogo }} />
                         <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white font-heading">RencanaKU</span>
-                    </div>
+                    </button>
 
                     <button onClick={() => shell.openNewProjectModal()} className="w-full btn-primary py-3 mb-6 text-sm font-bold flex items-center justify-center gap-2 shadow-md">
                         <span dangerouslySetInnerHTML={{ __html: plus }} /> <span>New Project</span>
@@ -117,6 +117,14 @@ export default function WorkspaceLayout() {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-[#5B4DF6] dark:text-slate-300 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                            title="Kembali ke Landing Page"
+                        >
+                            <span className="flex items-center" dangerouslySetInnerHTML={{ __html: navHome }} />
+                            <span className="hidden sm:inline">Beranda</span>
+                        </button>
                         <button onClick={toggleTheme} className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                             <span dangerouslySetInnerHTML={{ __html: theme === 'dark' ? sun : moon }} />
                         </button>

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { initialsOf } from '../../utils/format.js';
 import { api } from '../../utils/api.js';
-import { brandLogo, sun, moon, spinner, logout as logoutIcon } from '../../utils/icons.js';
+import { brandLogo, sun, moon, spinner, logout as logoutIcon, navHome } from '../../utils/icons.js';
 
 function NavIcon({ name }) {
     const common = {
@@ -80,13 +80,13 @@ export default function AdminLayout() {
         <div className="flex min-h-screen flex-col bg-[#F8F9FD] text-slate-800 transition-colors dark:bg-[#0B0D14] dark:text-slate-100 md:flex-row">
             <aside className="flex w-full shrink-0 flex-col justify-between border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-[#121624] md:h-screen md:w-64 md:sticky md:top-0 md:border-b-0 md:border-r">
                 <div className="p-5">
-                    <div className="flex items-center gap-3">
+                    <button onClick={() => navigate('/')} className="flex items-center gap-3 text-left" title="Kembali ke Landing Page">
                         <span dangerouslySetInnerHTML={{ __html: brandLogo }} />
                         <div className="leading-tight">
                             <span className="block text-xl font-bold tracking-tight text-slate-900 dark:text-white font-heading">RencanaKU</span>
                             <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-[#5B4DF6]">Admin Panel</span>
                         </div>
-                    </div>
+                    </button>
 
                     <nav className="mt-7 space-y-1">
                         {ADMIN_NAV.map((item) => (
@@ -146,6 +146,14 @@ export default function AdminLayout() {
                         <span>Panel Kontrol</span>
                     </div>
                     <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-[#5B4DF6] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                            title="Kembali ke Landing Page"
+                        >
+                            <span className="flex items-center" dangerouslySetInnerHTML={{ __html: navHome }} />
+                            <span className="hidden sm:inline">Beranda</span>
+                        </button>
                         <button
                             onClick={toggleTheme}
                             className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
