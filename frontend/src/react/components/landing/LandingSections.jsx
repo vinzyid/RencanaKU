@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { arrowRight, play, chatQuestion, searchAlert, lightning, history } from '../../utils/icons.js';
 import { STEPS } from '../../utils/format.js';
 
@@ -9,10 +10,12 @@ const FEATURES = [
 ];
 
 const TESTIMONIALS = [
-    { quote: '"RencanaKU memangkas waktu pembuatan dokumen requirement dari 3 hari menjadi hanya 15 menit. Sangat membantu!"', name: 'Budi Santoso', role: 'Fullstack Developer' },
-    { quote: '"Fitur deteksi kontradiksinya mantap banget. AI coding agent jadi ga bingung lagi baca spek proyek saya."', name: 'Siti Rahma', role: 'Software Engineer' },
-    { quote: '"Versioning PRD sangat membantu melacak revisi tugas akhir aplikasi saya. Recommended!"', name: 'Andi Wijaya', role: 'Mahasiswa Teknik Informatika' },
+    { quote: '"RencanaKU memangkas waktu pembuatan dokumen requirement dari 3 hari menjadi hanya 15 menit. Sangat membantu!"', name: 'Budi Santoso', initials: 'BS', avatarTone: 'from-indigo-500 to-violet-600', role: 'Fullstack Developer' },
+    { quote: '"Fitur deteksi kontradiksinya mantap banget. AI coding agent jadi ga bingung lagi baca spek proyek saya."', name: 'Siti Rahma', initials: 'SR', avatarTone: 'from-fuchsia-500 to-purple-600', role: 'Software Engineer' },
+    { quote: '"Versioning PRD sangat membantu melacak revisi tugas akhir aplikasi saya. Recommended!"', name: 'Andi Wijaya', initials: 'AW', avatarTone: 'from-blue-500 to-indigo-600', role: 'Mahasiswa Teknik Informatika' },
 ];
+
+const testimonialStar = '<svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.93 5.94 6.56.95-4.75 4.63 1.12 6.54L12 17.47l-5.86 3.09 1.12-6.54L2.51 9.39l6.56-.95L12 2.5z" /></svg>';
 
 const FAQS = [
     { q: 'Apa itu RencanaKU?', a: 'RencanaKU adalah platform berbasis AI untuk membantu kamu membuat dokumen Product Requirement Document (PRD) yang jelas dan siap dieksekusi.' },
@@ -57,18 +60,68 @@ export function FiturSection() {
 }
 
 export function CaraKerjaSection() {
+    const stepDetails = [
+        'Tuangkan ide awal, masalah yang ingin diselesaikan, dan siapa pengguna utamanya. Tidak perlu rapi—mulai saja dari gambaran besarnya.',
+        'AI mengajukan pertanyaan yang relevan untuk menggali tujuan, fitur, alur pengguna, serta batasan proyek secara bertahap.',
+        'Setiap requirement diperiksa untuk menemukan bagian yang samar, tidak lengkap, atau saling bertentangan sebelum menjadi spesifikasi final.',
+        'Hasil analisis dirangkai menjadi PRD yang terstruktur, lengkap dengan alur, aturan bisnis, dan detail yang mudah dipahami tim.',
+        'Unduh PRD dalam format yang siap dibagikan atau langsung digunakan sebagai konteks untuk AI coding agent pilihanmu.',
+    ];
+
     return (
         <main className="flex-1 max-w-7xl mx-auto px-6 py-12 flex flex-col justify-center animate-fadeIn">
-            <div className="text-center max-w-xl mx-auto mb-10">
+            <div className="text-center max-w-2xl mx-auto mb-10">
                 <span className="text-xs font-bold uppercase tracking-widest text-[#5B4DF6] mb-2 block font-heading">Cara Kerja</span>
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white font-heading">5 Langkah Mudah Menuju PRD Sempurna</h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-3">Dari ide yang masih mentah hingga dokumen siap eksekusi—ikuti alurnya dan biarkan RencanaKU merapikan sisanya.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="relative grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-7">
                 {STEPS.map((s, idx) => (
-                    <div key={s.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 text-center flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] font-bold text-sm flex items-center justify-center mb-3">{idx + 1}</div>
-                        <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-1">{s.title}</h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{s.sub}</p>
+                    <div key={s.id} className="relative group">
+                        <div className="h-full bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 text-center flex flex-col items-center shadow-sm hover:-translate-y-2 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all duration-300">
+                            <div className="relative w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] font-extrabold text-base flex items-center justify-center mb-4 group-hover:bg-[#5B4DF6] group-hover:text-white group-hover:rotate-6 transition-all duration-300">
+                                {idx + 1}
+                                <span className="absolute -inset-1 rounded-2xl border border-indigo-200/0 group-hover:border-indigo-300/60 group-hover:scale-125 transition-all duration-500" />
+                            </div>
+                            <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-2 font-heading">{s.title}</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{stepDetails[idx]}</p>
+                        </div>
+                        {idx < STEPS.length - 1 && (
+                            <svg
+                                className="hidden md:block absolute -right-7 top-1/2 -translate-y-1/2 z-10 pointer-events-none overflow-visible"
+                                width="56"
+                                height="180"
+                                viewBox="0 0 56 180"
+                                fill="none"
+                                aria-hidden="true"
+                            >
+                                <defs>
+                                    <linearGradient id={`arrowGrad${idx}`} x1="0" y1="0" x2="56" y2="180" gradientUnits="userSpaceOnUse">
+                                        <stop stopColor="#818CF8" />
+                                        <stop offset="0.5" stopColor="#5B4DF6" />
+                                        <stop offset="1" stopColor="#818CF8" />
+                                    </linearGradient>
+                                </defs>
+                                <path
+                                    d="M4 30 C 40 30, 44 90, 28 130 C 20 148, 36 158, 46 150"
+                                    stroke={`url(#arrowGrad${idx})`}
+                                    strokeWidth="3.5"
+                                    strokeLinecap="round"
+                                    strokeDasharray="7 6"
+                                    className="workflow-arrow"
+                                    style={{ animationDelay: `${idx * 0.18}s` }}
+                                />
+                                <path
+                                    d="M46 150 L 40 138 M46 150 L 52 140"
+                                    stroke="#5B4DF6"
+                                    strokeWidth="3.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="workflow-arrow"
+                                    style={{ animationDelay: `${idx * 0.18}s` }}
+                                />
+                            </svg>
+                        )}
                     </div>
                 ))}
             </div>
@@ -77,15 +130,79 @@ export function CaraKerjaSection() {
 }
 
 export function TestimoniSection() {
+    const [active, setActive] = useState(null);
+
+    const stats = [
+        { value: '4.9', label: 'Rating rata-rata', suffix: '/5' },
+        { value: '1.200+', label: 'PRD dibuat' },
+        { value: '98%', label: 'Merekomendasikan' },
+    ];
+
     return (
         <main className="flex-1 max-w-7xl mx-auto px-6 py-12 flex flex-col justify-center animate-fadeIn">
-            <SectionHeading kicker="Testimoni" title="Dipercaya Pengembang & Student Developer" />
+            <SectionHeading
+                kicker="Testimoni"
+                title="Dipercaya Pengembang & Student Developer"
+                subtitle="Cerita nyata dari mereka yang mengubah ide mentah menjadi spesifikasi siap eksekusi bersama RencanaKU."
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+                {stats.map((s) => (
+                    <div key={s.label} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 px-5 py-4 flex items-center gap-4 shadow-sm">
+                        <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] flex items-center justify-center">
+                            <span dangerouslySetInnerHTML={{ __html: testimonialStar }} />
+                        </div>
+                        <div className="leading-tight">
+                            <div className="text-xl font-extrabold text-slate-900 dark:text-white font-heading">
+                                {s.value}
+                                {s.suffix ? <span className="text-xs font-bold text-slate-400 ml-0.5">{s.suffix}</span> : null}
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400">{s.label}</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {TESTIMONIALS.map((t) => (
-                    <div key={t.name} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed italic mb-4">{t.quote}</p>
-                        <div className="font-bold text-xs text-slate-900 dark:text-white">{t.name}</div>
-                        <div className="text-[11px] text-slate-400">{t.role}</div>
+                {TESTIMONIALS.map((t, i) => (
+                    <div
+                        key={t.name}
+                        className={`testimonial-card card-enter relative rounded-3xl border bg-white dark:bg-slate-900 p-6 shadow-sm flex flex-col transition-all duration-300 ${active === i
+                                ? 'border-indigo-300 dark:border-indigo-700 shadow-xl shadow-indigo-500/15 -translate-y-1'
+                                : 'border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-xl hover:shadow-indigo-500/10'
+                            }`}
+                        style={{ animationDelay: `${i * 120}ms` }}
+                        onMouseEnter={() => setActive(i)}
+                        onMouseLeave={() => setActive((cur) => (cur === i ? null : cur))}
+                        tabIndex={0}
+                        onFocus={() => setActive(i)}
+                        onBlur={() => setActive((cur) => (cur === i ? null : cur))}
+                    >
+                        <div className="absolute top-5 right-5 text-6xl leading-none text-indigo-100 dark:text-indigo-950/70 font-heading select-none pointer-events-none">&ldquo;</div>
+
+                        <div className="flex items-center gap-1 mb-4 text-amber-400">
+                            {[0, 1, 2, 3, 4].map((k) => (
+                                <span
+                                    key={k}
+                                    className="testimonial-star"
+                                    style={{ animationDelay: `${i * 120 + 400 + k * 90}ms` }}
+                                    dangerouslySetInnerHTML={{ __html: testimonialStar }}
+                                />
+                            ))}
+                            <span className="ml-1.5 text-[11px] font-bold text-slate-400">5.0</span>
+                        </div>
+
+                        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6 flex-1">{t.quote}</p>
+
+                        <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.avatarTone} text-white text-xs font-extrabold flex items-center justify-center shadow-md`}>
+                                {t.initials}
+                            </div>
+                            <div className="leading-tight">
+                                <div className="font-bold text-xs text-slate-900 dark:text-white">{t.name}</div>
+                                <div className="text-[11px] text-slate-400">{t.role}</div>
+                            </div>
+                        </div>
                     </div>
                 ))}
             </div>

@@ -198,6 +198,34 @@ h1, h2, h3, h4, .font-heading {
     animation: pulseGlow 4s ease-in-out infinite;
 }
 
+@keyframes workflowArrow {
+    0% { stroke-dashoffset: 0; opacity: 0.55; }
+    50% { opacity: 1; }
+    100% { stroke-dashoffset: -26; opacity: 0.55; }
+}
+.workflow-arrow {
+    animation: workflowArrow 1.6s linear infinite;
+}
+
+/* --- Testimoni cards --- */
+@keyframes cardEnter {
+    0% { opacity: 0; transform: translateY(18px) scale(0.97); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.card-enter {
+    animation: cardEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes starPop {
+    0% { opacity: 0; transform: scale(0.3) rotate(-30deg); }
+    60% { opacity: 1; transform: scale(1.18) rotate(4deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.testimonial-star {
+    display: inline-flex;
+    animation: starPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
 @keyframes typingDot {
     0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
     40% { transform: translateY(-6px); opacity: 1; }
