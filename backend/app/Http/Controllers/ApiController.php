@@ -13,11 +13,14 @@ use App\Services\Ai\PrdDiff;
 use App\Services\Ai\PrdGenerator;
 use App\Services\ProjectFlow;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class ApiController extends Controller
 {
@@ -52,10 +55,134 @@ class ApiController extends Controller
         $user = User::where('email', $data['email'])->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
+            // Akun OAuth yang belum pernah mengeset kata sandi tidak akan pernah
+            // cocok di sini. Beri arahan jelas: pakai tombol Google, atau buat
+            // kata sandi lewat "Lupa password".
+            if ($user && ! $user->hasPassword() && in_array($user->auth_provider, ['google', 'github'], true)) {
+                $provider = ucfirst($user->auth_provider);
+
+                return response()->json([
+                    'message' => "Akun ini terdaftar lewat {$provider}. Masuk dengan tombol {$provider}, atau klik \"Lupa password\" untuk membuat kata sandi baru.",
+                ], 422);
+            }
+
             return response()->json(['message' => 'Email atau password salah.'], 422);
         }
 
         return $this->tokenResponse($user);
+    }
+
+    /**
+     * Kirim tautan atur ulang kata sandi ke email user.
+     *
+     * Berlaku untuk akun manual maupun OAuth: akun Google/GitHub yang belum
+     * punya kata sandi terpakai bisa memakai alur ini untuk membuat kata sandi
+     * pertamanya, sehingga selanjutnya bisa masuk manual.
+     */
+    public function forgotPassword(Request $request)
+    {
+        $data = $request->validate(
+            ['email' => 'required|email'],
+            ['email.required' => 'Email wajib diisi.', 'email.email' => 'Format email tidak valid.']
+        );
+
+        // Broker Laravel menyimpan token di tabel password_reset_tokens lalu
+        // memicu User::sendPasswordResetNotification (lihat notifikasi kustom).
+        $status = Password::broker()->sendResetLink(['email' => $data['email']]);
+
+        if ($status === Password::RESET_THROTTLED) {
+            return response()->json([
+                'message' => 'Permintaan atur ulang baru saja dikirim. Silakan tunggu sebentar sebelum mencoba lagi.',
+            ], 429);
+        }
+
+        // Jangan ungkap apakah email terdaftar atau tidak (anti user-enumeration).
+        return response()->json([
+            'message' => 'Jika email tersebut terdaftar, kami telah mengirim tautan atur ulang kata sandi. Silakan cek kotak masuk (dan folder spam).',
+        ]);
+    }
+
+    /**
+     * Setel ulang kata sandi memakai token dari email.
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'token.required' => 'Token atur ulang tidak ditemukan.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'password.required' => 'Kata sandi baru wajib diisi.',
+            'password.min' => 'Kata sandi minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
+        ]);
+
+        $status = Password::broker()->reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => $password,
+                    'password_set_at' => now(),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                // Cabut seluruh token lama: sesi/perangkat sebelumnya logout.
+                $user->tokens()->delete();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Kata sandi berhasil diatur ulang. Silakan masuk dengan kata sandi baru Anda.',
+            ]);
+        }
+
+        return response()->json(['message' => $this->passwordStatusMessage($status)], 422);
+    }
+
+    /**
+     * Ganti / setel kata sandi dari halaman Pengaturan (user sudah login).
+     *
+     * Kata sandi lama hanya diwajibkan bila akun sudah punya kata sandi terpakai.
+     * Akun OAuth yang belum pernah mengeset kata sandi boleh langsung mengeset.
+     */
+    public function changePassword(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'current_password' => [$user->hasPassword() ? 'required' : 'nullable', 'string'],
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'current_password.required' => 'Kata sandi lama wajib diisi.',
+            'password.required' => 'Kata sandi baru wajib diisi.',
+            'password.min' => 'Kata sandi minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
+        ]);
+
+        if ($user->hasPassword() && ! Hash::check((string) $data['current_password'], $user->password)) {
+            return response()->json(['message' => 'Kata sandi lama tidak sesuai.'], 422);
+        }
+
+        $user->forceFill([
+            'password' => $data['password'],
+            'password_set_at' => now(),
+        ])->save();
+
+        // Cabut token lain agar perangkat lain ikut logout (token sesi ini tetap).
+        if ($current = $user->currentAccessToken()) {
+            $user->tokens()->whereKeyNot($current->getKey())->delete();
+        }
+
+        return response()->json([
+            'message' => 'Kata sandi berhasil diperbarui.',
+            'user' => UserResource::make($user->fresh()),
+        ]);
     }
 
     public function logout(Request $request)
@@ -660,6 +787,19 @@ class ApiController extends Controller
             'token' => $token,
             'user' => UserResource::make($user),
         ], $status);
+    }
+
+    /**
+     * Terjemahkan status PasswordBroker menjadi pesan bahasa Indonesia.
+     */
+    private function passwordStatusMessage(string $status): string
+    {
+        return match ($status) {
+            Password::INVALID_USER => 'Email tersebut tidak terdaftar.',
+            Password::INVALID_TOKEN => 'Tautan atur ulang tidak valid atau sudah kedaluwarsa. Silakan minta tautan baru.',
+            Password::RESET_THROTTLED => 'Terlalu banyak percobaan. Silakan coba lagi nanti.',
+            default => 'Gagal mengatur ulang kata sandi. Silakan coba lagi.',
+        };
     }
 
     private function authorizeProject(Request $request, Project $project): void

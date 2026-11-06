@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -34,6 +35,41 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;
+    }
+
+    /**
+     * Akun manual (tanpa auth_provider) dibuat dengan kata sandi yang langsung
+     * terpakai, jadi tandai password_set_at sejak awal. Akun OAuth dibiarkan
+     * NULL karena password-nya acak/tidak terpakai.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            if ($user->password_set_at === null && $user->auth_provider === null) {
+                $user->password_set_at = now();
+            }
+        });
+    }
+
+    /**
+     * Apakah akun ini punya kata sandi yang benar-benar dipakai user.
+     *
+     * Akun OAuth dibuat dengan password acak tanpa nilai `password_set_at`,
+     * sehingga NULL berarti "belum pernah mengeset kata sandi" — user boleh
+     * mengesetnya tanpa perlu memasukkan kata sandi lama.
+     */
+    public function hasPassword(): bool
+    {
+        return $this->password_set_at !== null;
+    }
+
+    /**
+     * Pakai notifikasi atur ulang kita sendiri agar tautan mengarah ke
+     * frontend SPA (bukan route web Laravel yang tidak ada di backend ini).
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     /**
@@ -69,6 +105,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'password_set_at' => 'datetime',
         ];
     }
 

@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [ApiController::class, 'register'])->middleware('throttle:register');
 Route::post('/login', [ApiController::class, 'login'])->middleware('throttle:login');
 
+// Lupa & atur ulang kata sandi (publik, dibatasi rate limit).
+Route::post('/forgot-password', [ApiController::class, 'forgotPassword'])->middleware('throttle:password-email');
+Route::post('/reset-password', [ApiController::class, 'resetPassword'])->middleware('throttle:password-reset');
+
 // Tukar kode OAuth sekali-pakai (dari callback social login) menjadi token
 // Sanctum via POST, sehingga token tidak pernah muncul di URL (Masalah #11).
 Route::post('/oauth/token/complete', [SocialAuthController::class, 'completeLogin'])
@@ -16,6 +20,9 @@ Route::post('/oauth/token/complete', [SocialAuthController::class, 'completeLogi
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/logout', [ApiController::class, 'logout']);
     Route::get('/me', [ApiController::class, 'me']);
+
+    // Ganti / setel kata sandi dari halaman Pengaturan.
+    Route::post('/password', [ApiController::class, 'changePassword']);
 
     Route::get('/projects', [ApiController::class, 'projects']);
     Route::post('/projects', [ApiController::class, 'createProject']);

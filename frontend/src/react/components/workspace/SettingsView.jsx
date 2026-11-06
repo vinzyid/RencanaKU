@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useShell } from '../../context/ShellContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { api } from '../../utils/api.js';
 import { userProfile, palette, lock } from '../../utils/icons.js';
 
 const TABS = [
@@ -15,10 +17,32 @@ function tabClass(active) {
 }
 
 export default function SettingsView() {
-    const { user } = useAuth();
+    const { user, setUser } = useAuth();
     const shell = useShell();
     const { theme, toggleTheme } = useTheme();
     const { showToast } = useToast();
+
+    const [pwdBusy, setPwdBusy] = useState(false);
+    const [pwdError, setPwdError] = useState('');
+    const hasPassword = Boolean(user?.has_password);
+    const providerLabel = user?.auth_provider === 'github' ? 'GitHub' : 'Google';
+
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        setPwdBusy(true);
+        setPwdError('');
+        const payload = Object.fromEntries(new FormData(e.target));
+        try {
+            const data = await api('/password', { method: 'POST', body: JSON.stringify(payload) });
+            e.target.reset();
+            if (data?.user) setUser(data.user);
+            showToast(data?.message || 'Kata sandi berhasil diperbarui.', 'success');
+        } catch (err) {
+            setPwdError(err.message);
+        } finally {
+            setPwdBusy(false);
+        }
+    };
 
     return (
         <div className="space-y-8 pb-10">
@@ -100,23 +124,35 @@ export default function SettingsView() {
                     {shell.settingsTab === 'security' && (
                         <div className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
                             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-5 border-b border-slate-100 dark:border-slate-800 pb-3 font-heading">Keamanan & Sandi</h2>
-                            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); showToast('Pergantian password belum diimplementasikan di backend.', 'info'); }}>
-                                <div>
-                                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Password Lama</label>
-                                    <input type="password" placeholder="Masukkan password lama" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]" />
-                                </div>
+                            <form className="space-y-4" onSubmit={handlePasswordChange}>
+                                {!hasPassword && (
+                                    <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50 dark:bg-indigo-950/40 p-4">
+                                        <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">
+                                            Akun Anda masuk lewat {providerLabel}. Setel kata sandi di bawah agar Anda juga bisa masuk memakai email & kata sandi.
+                                        </p>
+                                    </div>
+                                )}
+                                {hasPassword && (
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Password Lama</label>
+                                        <input name="current_password" type="password" placeholder="Masukkan password lama" required className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]" />
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Password Baru</label>
-                                        <input type="password" placeholder="Minimal 8 karakter" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]" />
+                                        <input name="password" type="password" placeholder="Minimal 8 karakter" required minLength={8} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]" />
                                     </div>
                                     <div>
                                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Konfirmasi Password Baru</label>
-                                        <input type="password" placeholder="Ulangi password baru" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]" />
+                                        <input name="password_confirmation" type="password" placeholder="Ulangi password baru" required minLength={8} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-[#5B4DF6]" />
                                     </div>
                                 </div>
+                                {pwdError ? <p className="text-xs text-rose-500 font-medium">{pwdError}</p> : null}
                                 <div className="pt-2 flex justify-end">
-                                    <button type="submit" className="btn-secondary border border-slate-200 dark:border-slate-700 px-5 py-2 text-xs font-bold shadow-sm rounded-xl">Perbarui Password</button>
+                                    <button type="submit" disabled={pwdBusy} className="btn-secondary border border-slate-200 dark:border-slate-700 px-5 py-2 text-xs font-bold shadow-sm rounded-xl disabled:opacity-60">
+                                        {pwdBusy ? 'Menyimpan...' : (hasPassword ? 'Perbarui Password' : 'Setel Password')}
+                                    </button>
                                 </div>
                             </form>
                         </div>
