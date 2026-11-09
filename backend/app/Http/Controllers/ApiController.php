@@ -45,7 +45,13 @@ class ApiController extends Controller
 
         $remember = $request->boolean('remember');
         unset($data['remember']);
-        $data['role'] = User::roleForEmail($data['email']);
+
+        // Pendaftaran manual TIDAK pernah memberi role admin, walau emailnya
+        // ada di ADMIN_EMAILS: kepemilikan email belum terbukti, sehingga siapa
+        // pun bisa mendaftar duluan memakai email admin. Role admin baru
+        // disinkronkan setelah email terbukti (login Google/GitHub atau reset
+        // kata sandi lewat tautan email).
+        $data['role'] = User::ROLE_USER;
 
         $user = User::create($data);
 
@@ -130,10 +136,16 @@ class ApiController extends Controller
         $status = Password::broker()->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password): void {
+                // Reset lewat tautan email membuktikan user memiliki email ini,
+                // jadi email ditandai terverifikasi dan role disinkronkan dengan
+                // ADMIN_EMAILS (jalur sah admin yang mendaftar manual). Admin yang
+                // sudah ada tidak diturunkan di sini.
                 $user->forceFill([
                     'password' => $password,
                     'password_set_at' => now(),
                     'remember_token' => Str::random(60),
+                    'email_verified_at' => $user->email_verified_at ?? now(),
+                    'role' => $user->isAdmin() ? User::ROLE_ADMIN : User::roleForEmail($user->email),
                 ])->save();
 
                 // Cabut seluruh token lama: sesi/perangkat sebelumnya logout.
