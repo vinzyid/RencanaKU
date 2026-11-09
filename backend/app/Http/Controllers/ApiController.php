@@ -394,14 +394,22 @@ class ApiController extends Controller
 
     /**
      * Proses satu pesan user, tentukan konteks berdasarkan state proyek,
-     * panggil AI yang sesuai, simpan versi PRD bila berubah, dan hasilkan
-     * balasan AI (dengan quick-reply chip bila relevan).
+     * panggil AI yang sesuai, simpan versi PRD baru, dan hasilkan balasan AI
+     * (dengan quick-reply chip bila relevan).
      *
-     * Seluruh operasi tulis dibungkus satu transaksi database (Masalah #7):
-     * bila salah satu langkah gagal, tidak ada state setengah jadi seperti
-     * pesan user tersimpan tanpa balasan AI. Baris proyek dikunci
-     * (lockForUpdate) agar pesan-pesan yang datang bersamaan diproses
-     * berurutan, bukan saling menimpa versi.
+     * Dua tahap terpisah:
+     *  1. planTurn()   — membaca state & memanggil AI, DI LUAR transaksi DB.
+     *                    Panggilan AI bisa puluhan detik; menahannya di dalam
+     *                    transaksi berarti mengunci baris proyek & koneksi DB
+     *                    selama itu, dan catatan pemakaian token ikut
+     *                    ter-rollback bila ada langkah yang gagal.
+     *  2. commitTurn() — menulis semua hasil dalam SATU transaksi singkat
+     *                    (Masalah #7): bila gagal, tidak ada state setengah
+     *                    jadi seperti pesan user tanpa balasan AI.
+     *
+     * Bila ada pesan lain yang lebih dulu tersimpan selama AI bekerja (versi
+     * terbaru berubah), hasil AI dibuang dan giliran diproses ulang dari state
+     * terbaru agar versi tidak saling menimpa.
      *
      * Metode ini bersifat publik karena dipanggil dari background job
      * ProcessProjectMessage (Opsi 3 - queue), bukan langsung dari request HTTP.
@@ -411,52 +419,23 @@ class ApiController extends Controller
         // Semua pemakaian token dalam alur ini diatribusikan ke user & proyek.
         $this->generator->setContext($project->user_id, $project->id);
 
-        DB::transaction(function () use ($project, $content) {
-            // Kunci proyek: serialisasi pesan yang masuk bersamaan pada proyek
-            // yang sama agar penomoran versi & flag tidak balapan.
-            Project::whereKey($project->id)->lockForUpdate()->first();
+        for ($attempt = 1; $attempt <= self::TURN_ATTEMPTS; $attempt++) {
+            $plan = $this->planTurn($project, $content);
 
-            $project->messages()->create(['sender' => 'user', 'content' => $content]);
-
-            $latest = $project->prdVersions()->latest('version_number')->first();
-
-            // STATE: belum ada PRD sama sekali -> generate draft pertama.
-            if (! $latest) {
-                $this->handleInitialIdea($project, $content);
-
+            if ($this->commitTurn($project, $content, $plan)) {
                 return;
             }
+        }
 
-            // STATE: ada ambiguitas belum terselesaikan -> ini jawaban klarifikasi.
-            $pendingAmbiguity = $latest->ambiguityFlags()
-                ->where('is_resolved', false)
-                ->lockForUpdate()
-                ->first();
-
-            if ($pendingAmbiguity) {
-                $this->handleAmbiguityAnswer($project, $latest, $pendingAmbiguity, $content);
-
-                return;
-            }
-
-            // STATE: ada kontradiksi belum terselesaikan -> ini resolusi kontradiksi.
-            $pendingContradiction = $latest->contradictionFlags()
-                ->whereNull('resolution')
-                ->lockForUpdate()
-                ->first();
-
-            if ($pendingContradiction) {
-                $this->handleContradictionAnswer($project, $latest, $pendingContradiction, $content);
-
-                return;
-            }
-
-            // STATE: draft sudah bersih -> ini revisi bebas (tahap Dokumentasi).
-            $this->handleFreeRevision($project, $latest, $content);
-        }, self::DB_TRANSACTION_ATTEMPTS);
+        throw new \RuntimeException('Proyek berubah terus saat pesan diproses. Silakan kirim ulang.');
     }
 
-    private const MAX_CLARIFICATION_ROUNDS = 2;
+    /**
+     * Batas jumlah pertanyaan klarifikasi yang ditanyakan satu per satu
+     * (Masalah #4, Solution A). Setelah batas ini, sisa pertanyaan diisi
+     * asumsi wajar dan disebutkan secara terbuka kepada user.
+     */
+    private const MAX_CLARIFICATION_QUESTIONS = 5;
 
     /**
      * Batas putaran kontradiksi. Setelah melewati batas ini, sisa kontradiksi
@@ -468,24 +447,174 @@ class ApiController extends Controller
     /** Percobaan ulang transaksi saat deadlock (deteksi otomatis oleh Laravel). */
     private const DB_TRANSACTION_ATTEMPTS = 3;
 
-    private function handleInitialIdea(Project $project, string $content): void
-    {
-        $prd = $this->generator->generate($content);
-        $version = $this->newVersion($project, $prd, $this->generator->provider());
+    /** Percobaan ulang satu giliran bila proyek berubah selama AI bekerja. */
+    private const TURN_ATTEMPTS = 2;
 
-        if ($project->title === 'Proyek Baru' || $project->title === '') {
-            $project->update(['title' => $prd['title']]);
+    private const ASSUMED_ANSWER = 'Diasumsikan wajar oleh sistem.';
+
+    private const CONTRADICTION_CHIPS = ['Pakai A', 'Pakai B', 'Saya revisi manual'];
+
+    /**
+     * Tahap 1: baca state proyek lalu panggil AI. Tidak menulis apa pun ke DB
+     * (selain catatan pemakaian token oleh AiGateway, yang memang harus tetap
+     * tersimpan walau langkah berikutnya gagal).
+     */
+    private function planTurn(Project $project, string $content): array
+    {
+        $latest = $project->prdVersions()->latest('version_number')->first();
+
+        $plan = [
+            'base_version_id' => $latest?->id,
+            'mode' => 'revision',
+            'ambiguity_id' => null,
+            'contradiction_id' => null,
+            'resolution' => null,
+        ];
+
+        if (! $latest) {
+            // STATE: belum ada PRD sama sekali -> generate draft pertama.
+            $plan['mode'] = 'initial';
+            $plan['prd'] = $this->generator->generate($content);
+        } elseif ($ambiguity = $latest->ambiguityFlags()->where('is_resolved', false)->orderBy('id')->first()) {
+            // STATE: ada pertanyaan klarifikasi yang sedang ditanyakan -> ini jawabannya.
+            $plan['mode'] = 'ambiguity';
+            $plan['ambiguity_id'] = $ambiguity->id;
+            $plan['prd'] = $this->generator->revise($latest->decodedContent(), $content, $ambiguity->question);
+        } elseif ($contradiction = $latest->contradictionFlags()->whereNull('resolution')->orderBy('id')->first()) {
+            // STATE: ada kontradiksi yang sedang ditanyakan -> ini resolusinya.
+            $plan['mode'] = 'contradiction';
+            $plan['contradiction_id'] = $contradiction->id;
+            $plan['resolution'] = $this->flow->interpretResolution($content);
+            $instruction = "Selesaikan kontradiksi antara '{$contradiction->requirement_a}' dan '{$contradiction->requirement_b}'. Keputusan pengguna: {$content}.";
+            $plan['prd'] = $this->generator->revise($latest->decodedContent(), $instruction);
+        } else {
+            // STATE: draft sudah bersih -> ini revisi bebas (tahap Dokumentasi).
+            $plan['prd'] = $this->generator->revise($latest->decodedContent(), $content);
         }
 
-        $this->refreshFlags($version);
+        // Ambil provider sekarang: panggilan deteksi di bawah akan menimpanya.
+        $plan['provider'] = $this->generator->provider();
+        $plan['ambiguities'] = $this->generator->detectAmbiguities($plan['prd']);
+        $plan['contradictions'] = $this->generator->detectContradictions($plan['prd']);
 
-        $questions = $version->ambiguityFlags()->where('is_resolved', false)->get();
+        return $plan;
+    }
 
-        if ($questions->isNotEmpty()) {
+    /**
+     * Tahap 2: tulis seluruh hasil giliran dalam satu transaksi singkat.
+     * Mengembalikan false bila proyek berubah selama AI bekerja.
+     */
+    private function commitTurn(Project $project, string $content, array $plan): bool
+    {
+        return DB::transaction(function () use ($project, $content, $plan) {
+            // Kunci proyek: serialisasi penulisan pada proyek yang sama.
+            Project::whereKey($project->id)->lockForUpdate()->first();
+
+            $latest = $project->prdVersions()->latest('version_number')->first();
+
+            if ($latest?->id !== $plan['base_version_id']) {
+                return false;
+            }
+
+            $project->messages()->create(['sender' => 'user', 'content' => $content]);
+
+            // Catat jawaban HANYA untuk pertanyaan/kontradiksi yang sedang ditanyakan.
+            if ($plan['ambiguity_id']) {
+                AmbiguityFlag::whereKey($plan['ambiguity_id'])->update([
+                    'is_resolved' => true,
+                    'resolution_answer' => $content,
+                ]);
+            }
+
+            if ($plan['contradiction_id']) {
+                ContradictionFlag::whereKey($plan['contradiction_id'])->update(['resolution' => $plan['resolution']]);
+            }
+
+            $version = $this->newVersion($project, $plan['prd'], $plan['provider']);
+
+            if ($plan['mode'] === 'initial' && ($project->title === 'Proyek Baru' || $project->title === '')) {
+                $project->update(['title' => $plan['prd']['title']]);
+            }
+
+            // Pertanyaan & kontradiksi yang belum selesai ikut pindah ke versi
+            // baru, sehingga tidak ada yang hilang diam-diam.
+            if ($latest) {
+                $this->carryOverOpenFlags($latest, $version);
+            }
+
+            $this->storeDetectedFlags($version, $plan['ambiguities'], $plan['contradictions']);
+
+            $notes = [];
+
+            if ($plan['mode'] === 'revision') {
+                // Revisi bebas tidak memicu interogasi baru: pertanyaan yang muncul
+                // dari revisi dianggap sudah terjawab agar alur tetap sederhana & cepat.
+                $this->assumeOpenAmbiguities($version);
+            } elseif ($this->answeredClarifications($project) >= self::MAX_CLARIFICATION_QUESTIONS) {
+                $assumed = $this->assumeOpenAmbiguities($version);
+                if ($assumed !== []) {
+                    $notes[] = "Supaya tidak terlalu banyak pertanyaan, hal berikut saya isi dengan asumsi wajar (bisa kamu revisi kapan saja):\n".collect($assumed)->map(fn ($q) => "• {$q}")->implode("\n");
+                }
+            }
+
+            if ($this->answeredContradictions($project) >= self::MAX_CONTRADICTION_ROUNDS) {
+                if ($this->autoResolveOpenContradictions($version) > 0) {
+                    $notes[] = 'Kontradiksi yang tersisa saya anggap selesai agar alur tidak berputar terus. Kamu tetap bisa merevisinya manual.';
+                }
+            }
+
+            $lead = match ($plan['mode']) {
+                'initial' => "Draft PRD v{$version->version_number} sudah saya susun.",
+                'ambiguity' => "Terima kasih, sudah saya catat. PRD diperbarui ke v{$version->version_number}.",
+                'contradiction' => "Kontradiksi sudah saya selesaikan sesuai pilihanmu. PRD kini v{$version->version_number}.",
+                default => "Revisi diterapkan ke v{$version->version_number}.",
+            };
+
+            $this->presentNextStep($project, $version, $plan['mode'], $lead, $notes);
+
+            return true;
+        }, self::DB_TRANSACTION_ATTEMPTS);
+    }
+
+    /**
+     * Buat balasan AI berikutnya: tanyakan SATU pertanyaan klarifikasi yang
+     * tersisa, atau satu kontradiksi, atau nyatakan PRD siap difinalisasi.
+     */
+    private function presentNextStep(Project $project, PrdVersion $version, string $mode, string $lead, array $notes): void
+    {
+        $intro = implode("\n\n", array_filter([$lead, ...$notes]));
+
+        $openQuestions = $version->ambiguityFlags()->where('is_resolved', false)->orderBy('id')->get();
+
+        if ($openQuestions->isNotEmpty()) {
+            $question = $openQuestions->first();
+            $number = $this->answeredClarifications($project) + 1;
+            $total = $number + $openQuestions->count() - 1;
+            $options = collect($question->options ?? [])->filter()->values()->all();
+            $optionText = $options ? "\n".collect($options)->map(fn ($o) => "   • {$o}")->implode("\n") : '';
+            $prefix = match (true) {
+                $mode !== 'initial' => 'Pertanyaan berikutnya:',
+                $openQuestions->count() === 1 => 'Biar hasilnya pas, ada 1 hal yang perlu saya pastikan:',
+                default => "Biar hasilnya pas, ada {$openQuestions->count()} hal yang perlu saya pastikan. Saya tanyakan satu per satu ya.",
+            };
+
             $project->messages()->create([
                 'sender' => 'ai',
-                'content' => "Draft PRD v{$version->version_number} sudah saya susun. Biar hasilnya pas, saya perlu tahu sedikit lagi:\n\n".$this->formatQuestions($questions),
-                'quick_replies' => $this->flattenOptions($questions),
+                'content' => "{$intro}\n\n{$prefix}\n\n({$number}/{$total}) {$question->question}{$optionText}",
+                'quick_replies' => $options ?: null,
+                'related_prd_version_id' => $version->id,
+            ]);
+
+            return;
+        }
+
+        $contradiction = $version->contradictionFlags()->whereNull('resolution')->orderBy('id')->first();
+
+        if ($contradiction) {
+            $project->messages()->create([
+                'sender' => 'ai',
+                'content' => "{$intro}\n\nSaya menemukan requirement yang saling bertentangan:\n\nA) {$contradiction->requirement_a}\nB) {$contradiction->requirement_b}".($contradiction->explanation ? "\n\n{$contradiction->explanation}" : ''),
+                'quick_replies' => self::CONTRADICTION_CHIPS,
                 'related_prd_version_id' => $version->id,
             ]);
 
@@ -494,243 +623,45 @@ class ApiController extends Controller
 
         $project->messages()->create([
             'sender' => 'ai',
-            'content' => "Draft PRD v{$version->version_number} sudah saya susun dan tidak ada pertanyaan tambahan. Saya mulai cek kontradiksi.",
+            'content' => "{$intro}\n\nPRD sudah konsisten dan siap difinalisasi. Klik Finalisasi di panel PRD, atau ketik revisi tambahan di sini.",
             'quick_replies' => ['Lihat dokumen lengkap'],
             'related_prd_version_id' => $version->id,
         ]);
     }
 
     /**
-     * Format daftar pertanyaan klarifikasi jadi satu pesan ringkas
-     * (bukan satu pesan per pertanyaan) beserta pilihan jawaban.
+     * Pindahkan pertanyaan & kontradiksi yang belum selesai dari versi lama ke
+     * versi baru (baris yang sama, bukan salinan), agar tetap ditanyakan dan
+     * tidak tertinggal "yatim" di versi lama.
      */
-    private function formatQuestions(Collection $questions): string
+    private function carryOverOpenFlags(PrdVersion $from, PrdVersion $to): void
     {
-        return $questions->values()->map(function ($flag, $i) {
-            $options = collect($flag->options ?? [])
-                ->map(fn ($opt) => "   • {$opt}")
-                ->implode("\n");
-
-            return ($i + 1).'. '.$flag->question.($options !== '' ? "\n{$options}" : '');
-        })->implode("\n\n");
-    }
-
-    /**
-     * Kumpulkan semua opsi jawaban dari daftar pertanyaan menjadi chip
-     * siap-klik, dibatasi agar tidak membanjiri antarmuka.
-     */
-    private function flattenOptions(Collection $questions): array
-    {
-        return $questions
-            ->flatMap(fn ($flag) => $flag->options ?? [])
-            ->filter()
-            ->unique()
-            ->take(6)
-            ->values()
-            ->all();
-    }
-
-    /**
-     * Menandai seluruh ambiguitas yang belum terjawab sebagai terselesaikan
-     * dengan asumsi wajar, dipakai saat batas putaran klarifikasi tercapai
-     * agar pengguna tidak ditanya tanpa henti.
-     */
-    private function resolveRemainingAmbiguities(PrdVersion $version): void
-    {
-        $version->ambiguityFlags()
+        AmbiguityFlag::where('prd_version_id', $from->id)
             ->where('is_resolved', false)
-            ->get()
-            ->each(fn ($flag) => $flag->update([
-                'is_resolved' => true,
-                'resolution_answer' => 'Diasumsikan wajar oleh sistem.',
-            ]));
-    }
+            ->update(['prd_version_id' => $to->id]);
 
-    /**
-     * Berapa putaran klarifikasi yang sudah dilewati proyek ini.
-     * Dihitung dari jumlah versi yang memiliki flag ambiguitas.
-     */
-    private function clarificationRounds(Project $project): int
-    {
-        return (int) $project->prdVersions()
-            ->whereHas('ambiguityFlags')
-            ->count();
-    }
-
-    private function handleAmbiguityAnswer(Project $project, PrdVersion $latest, AmbiguityFlag $flag, string $content): void
-    {
-        // Tandai HANYA pertanyaan spesifik ini yang terselesaikan dengan jawaban pengguna.
-        $flag->update([
-            'is_resolved' => true,
-            'resolution_answer' => $content,
-        ]);
-
-        $revised = $this->generator->revise($latest->decodedContent(), $content, $flag->question);
-        $version = $this->newVersion($project, $revised, $this->generator->provider());
-        $this->refreshFlags($version);
-
-        $rounds = $this->clarificationRounds($project);
-        $remaining = $version->ambiguityFlags()->where('is_resolved', false)->get();
-
-        // Batas putaran tercapai -> berhenti bertanya, pakai asumsi wajar.
-        if ($remaining->isNotEmpty() && $rounds >= self::MAX_CLARIFICATION_ROUNDS) {
-            $this->resolveRemainingAmbiguities($version);
-            $remaining = collect();
-        }
-
-        $contradiction = $version->contradictionFlags()->whereNull('resolution')->first();
-
-        if ($remaining->isNotEmpty()) {
-            $project->messages()->create([
-                'sender' => 'ai',
-                'content' => "Terima kasih, sudah saya perbarui ke v{$version->version_number}.\n\nSedikit lagi ya:\n\n".$this->formatQuestions($remaining),
-                'quick_replies' => $this->flattenOptions($remaining),
-                'related_prd_version_id' => $version->id,
-            ]);
-
-            return;
-        }
-
-        if ($contradiction) {
-            $project->messages()->create([
-                'sender' => 'ai',
-                'content' => "Oke, sudah cukup jelas. PRD kini v{$version->version_number}. Lanjut ke validasi kontradiksi.\n\nSaya menemukan requirement yang saling bertentangan:\n\nA) {$contradiction->requirement_a}\nB) {$contradiction->requirement_b}\n\n{$contradiction->explanation}",
-                'quick_replies' => ['Pakai A', 'Pakai B', 'Saya revisi manual'],
-                'related_prd_version_id' => $version->id,
-            ]);
-
-            return;
-        }
-
-        $project->messages()->create([
-            'sender' => 'ai',
-            'content' => "Sudah cukup, makasih! PRD v{$version->version_number} sudah konsisten dan siap difinalisasi. Kamu masih bisa mengetik revisi bebas kapan saja.",
-            'quick_replies' => ['Lihat dokumen lengkap'],
-            'related_prd_version_id' => $version->id,
-        ]);
-    }
-
-    private function handleContradictionAnswer(Project $project, PrdVersion $latest, ContradictionFlag $flag, string $content): void
-    {
-        $resolution = $this->flow->interpretResolution($content);
-        $flag->update(['resolution' => $resolution]);
-
-        $instruction = "Selesaikan kontradiksi antara '{$flag->requirement_a}' dan '{$flag->requirement_b}'. Keputusan pengguna: {$content}.";
-        $revised = $this->generator->revise($latest->decodedContent(), $instruction);
-        $version = $this->newVersion($project, $revised, $this->generator->provider());
-        $this->refreshFlags($version);
-
-        $nextContradiction = $version->contradictionFlags()->whereNull('resolution')->first();
-
-        // Batas putaran tercapai -> hentikan interogasi agar tidak berputar
-        // tanpa henti. Sisa kontradiksi dianggap telah diselesaikan.
-        if ($nextContradiction && $this->contradictionRounds($project) >= self::MAX_CONTRADICTION_ROUNDS) {
-            $this->resolveRemainingContradictions($project);
-            $nextContradiction = null;
-        }
-
-        if ($nextContradiction) {
-            $project->messages()->create([
-                'sender' => 'ai',
-                'content' => "Kontradiksi diperbarui ke v{$version->version_number}. Masih ada satu lagi:\n\nA) {$nextContradiction->requirement_a}\nB) {$nextContradiction->requirement_b}",
-                'quick_replies' => ['Pakai A', 'Pakai B', 'Saya revisi manual'],
-                'related_prd_version_id' => $version->id,
-            ]);
-
-            return;
-        }
-
-        $project->messages()->create([
-            'sender' => 'ai',
-            'content' => "Semua kontradiksi selesai. PRD v{$version->version_number} sudah konsisten dan siap difinalisasi. Silakan klik Finalisasi di panel PRD, atau ketik revisi tambahan di sini.",
-            'quick_replies' => ['Tampilkan dokumen lengkap'],
-            'related_prd_version_id' => $version->id,
-        ]);
-    }
-
-    /**
-     * Berapa putaran kontradiksi yang sudah dilewati proyek ini, dihitung dari
-     * jumlah versi yang memiliki flag kontradiksi.
-     */
-    private function contradictionRounds(Project $project): int
-    {
-        return (int) $project->prdVersions()
-            ->whereHas('contradictionFlags')
-            ->count();
-    }
-
-    /**
-     * Tandai seluruh kontradiksi yang belum terselesaikan pada proyek ini
-     * sebagai selesai. Dipakai saat batas putaran tercapai agar alur dapat
-     * berlanjut dan tidak ada kontradiksi yang menggantung selamanya.
-     */
-    private function resolveRemainingContradictions(Project $project): void
-    {
-        ContradictionFlag::query()
-            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $project->id))
+        ContradictionFlag::where('prd_version_id', $from->id)
             ->whereNull('resolution')
-            ->update(['resolution' => 'auto_resolved']);
+            ->update(['prd_version_id' => $to->id]);
     }
-
-    private function handleFreeRevision(Project $project, PrdVersion $latest, string $content): void
-    {
-        $revised = $this->generator->revise($latest->decodedContent(), $content);
-        $version = $this->newVersion($project, $revised, $this->generator->provider());
-        $this->refreshFlags($version);
-
-        // Revisi bebas tidak memicu interogasi baru: pertanyaan yang muncul dari
-        // revisi dianggap sudah terjawab agar alur tetap sederhana & cepat.
-        $this->resolveRemainingAmbiguities($version);
-
-        $contradiction = $version->contradictionFlags()->whereNull('resolution')->first();
-
-        if ($contradiction) {
-            $project->messages()->create([
-                'sender' => 'ai',
-                'content' => "Revisi masuk ke v{$version->version_number}, namun muncul kontradiksi baru:\n\nA) {$contradiction->requirement_a}\nB) {$contradiction->requirement_b}",
-                'quick_replies' => ['Pakai A', 'Pakai B', 'Saya revisi manual'],
-                'related_prd_version_id' => $version->id,
-            ]);
-
-            return;
-        }
-
-        $project->messages()->create([
-            'sender' => 'ai',
-            'content' => "Revisi diterapkan ke v{$version->version_number}. PRD tetap konsisten dan siap difinalisasi.",
-            'related_prd_version_id' => $version->id,
-        ]);
-    }
-
-    // ---------------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------------
 
     /**
-     * Deteksi ulang ambiguitas & kontradiksi untuk sebuah versi PRD baru.
-     *
-     * Ambiguitas/kontradiksi yang sudah pernah muncul di versi sebelumnya
-     * TIDAK dibuat ulang. Ini mencegah loop tak berujung: begitu user
-     * menjawab sebuah ambiguitas, pertanyaan yang sama tidak muncul lagi
-     * meski teks PRD masih memuat kata pemicunya.
+     * Simpan hasil deteksi AI untuk versi baru. Ambiguitas/kontradiksi yang
+     * sudah pernah muncul di proyek ini TIDAK dibuat ulang. Ini mencegah loop
+     * tak berujung: begitu user menjawab, pertanyaan yang sama tidak muncul
+     * lagi meski teks PRD masih memuat kata pemicunya.
      */
-    private function refreshFlags(PrdVersion $version): void
+    private function storeDetectedFlags(PrdVersion $version, array $ambiguities, array $contradictions): void
     {
-        $content = $version->decodedContent();
+        $projectAmbiguities = AmbiguityFlag::query()
+            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $version->project_id));
 
-        $knownAmbiguityCodes = AmbiguityFlag::query()
-            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $version->project_id))
-            ->pluck('code')
-            ->filter()
-            ->all();
-
-        $seenAmbiguityTexts = AmbiguityFlag::query()
-            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $version->project_id))
-            ->pluck('question')
+        $knownAmbiguityCodes = (clone $projectAmbiguities)->pluck('code')->filter()->all();
+        $seenAmbiguityTexts = (clone $projectAmbiguities)->pluck('question')
             ->map(fn ($q) => mb_strtolower(trim($q)))
             ->all();
 
-        foreach ($this->generator->detectAmbiguities($content) as $ambiguity) {
+        foreach ($ambiguities as $ambiguity) {
             $code = $ambiguity['key'] ?? null;
             $normalizedQuestion = mb_strtolower(trim($ambiguity['question']));
 
@@ -745,21 +676,20 @@ class ApiController extends Controller
                 'options' => $ambiguity['options'] ?? null,
                 'is_resolved' => false,
             ]);
+
+            $knownAmbiguityCodes[] = $code;
+            $seenAmbiguityTexts[] = $normalizedQuestion;
         }
 
-        $knownContradictionCodes = ContradictionFlag::query()
-            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $version->project_id))
-            ->pluck('code')
-            ->filter()
-            ->all();
+        $projectContradictions = ContradictionFlag::query()
+            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $version->project_id));
 
-        $knownContradictions = ContradictionFlag::query()
-            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $version->project_id))
-            ->get()
+        $knownContradictionCodes = (clone $projectContradictions)->pluck('code')->filter()->all();
+        $knownContradictions = (clone $projectContradictions)->get()
             ->map(fn ($c) => mb_strtolower($c->requirement_a.'||'.$c->requirement_b))
             ->all();
 
-        foreach ($this->generator->detectContradictions($content) as $contradiction) {
+        foreach ($contradictions as $contradiction) {
             $code = $contradiction['code'] ?? null;
             $signature = mb_strtolower($contradiction['requirement_a'].'||'.$contradiction['requirement_b']);
 
@@ -774,7 +704,52 @@ class ApiController extends Controller
                 'requirement_b' => $contradiction['requirement_b'],
                 'explanation' => $contradiction['explanation'],
             ]);
+
+            $knownContradictionCodes[] = $code;
+            $knownContradictions[] = $signature;
         }
+    }
+
+    /**
+     * Tandai pertanyaan yang belum terjawab di versi ini sebagai "diasumsikan
+     * wajar". Mengembalikan daftar teks pertanyaan yang diasumsikan.
+     */
+    private function assumeOpenAmbiguities(PrdVersion $version): array
+    {
+        $open = $version->ambiguityFlags()->where('is_resolved', false)->orderBy('id')->get();
+
+        $open->each(fn ($flag) => $flag->update([
+            'is_resolved' => true,
+            'resolution_answer' => self::ASSUMED_ANSWER,
+        ]));
+
+        return $open->pluck('question')->all();
+    }
+
+    /** Tandai kontradiksi yang tersisa di versi ini sebagai selesai otomatis. */
+    private function autoResolveOpenContradictions(PrdVersion $version): int
+    {
+        return $version->contradictionFlags()->whereNull('resolution')->update(['resolution' => 'auto_resolved']);
+    }
+
+    /** Jumlah pertanyaan klarifikasi yang sudah dijawab user di proyek ini. */
+    private function answeredClarifications(Project $project): int
+    {
+        return AmbiguityFlag::query()
+            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $project->id))
+            ->where('is_resolved', true)
+            ->where(fn ($q) => $q->whereNull('resolution_answer')->orWhere('resolution_answer', '!=', self::ASSUMED_ANSWER))
+            ->count();
+    }
+
+    /** Jumlah kontradiksi yang sudah diputuskan user (bukan otomatis) di proyek ini. */
+    private function answeredContradictions(Project $project): int
+    {
+        return ContradictionFlag::query()
+            ->whereHas('prdVersion', fn ($q) => $q->where('project_id', $project->id))
+            ->whereNotNull('resolution')
+            ->where('resolution', '!=', 'auto_resolved')
+            ->count();
     }
 
     private function newVersion(Project $project, array $content, ?string $provider): PrdVersion
