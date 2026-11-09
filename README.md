@@ -150,11 +150,14 @@ php artisan serve
 
 ### Akun Demo
 
-Setelah `migrate --seed`:
+`php artisan migrate --seed` membuat akun demo (role **user**, bukan admin) beserta proyek contoh. Kata sandinya **tidak** ditulis di repo ini; atur sendiri di `backend/.env`:
 
-| Email | Password |
-|-------|----------|
-| `admin@rencanaku.test` | `admin12345` |
+```env
+DEMO_SEED_EMAIL=admin@rencanaku.test
+DEMO_SEED_PASSWORD=isi-kata-sandi-anda   # minimal 8 karakter
+```
+
+Bila `DEMO_SEED_PASSWORD` kosong, akun & proyek demo dilewati. Akun admin dibuat lewat `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` (lihat `backend/.env.example`). Untuk akun demo di database tim, minta kata sandinya ke tim secara pribadi.
 
 ### Development (hot reload)
 

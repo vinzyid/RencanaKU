@@ -89,6 +89,12 @@ return [
         'password' => env('ADMIN_SEED_PASSWORD'),
     ],
 
+    // Akun demo (role user) + proyek contoh untuk DatabaseSeeder.
+    'demo_seed' => [
+        'email' => env('DEMO_SEED_EMAIL', 'admin@rencanaku.test'),
+        'password' => env('DEMO_SEED_PASSWORD'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Green Computing (Estimasi Dampak Lingkungan)

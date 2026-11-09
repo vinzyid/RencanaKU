@@ -13,9 +13,20 @@ class DatabaseSeeder extends Seeder
         // Akun admin utama (login manual + Google). Lihat AdminUserSeeder.
         $this->call(AdminUserSeeder::class);
 
+        // Akun demo + proyek contoh. Kata sandinya dibaca dari .env
+        // (DEMO_SEED_PASSWORD), jangan ditulis di kode/README: repo ini publik.
+        // Akun demo selalu role "user", bukan admin.
+        $demoPassword = (string) config('rencanaku.demo_seed.password');
+
+        if (mb_strlen($demoPassword) < 8) {
+            $this->command?->warn('Akun & proyek demo dilewati: isi DEMO_SEED_PASSWORD (min. 8 karakter) di .env.');
+
+            return;
+        }
+
         $admin = User::updateOrCreate(
-            ['email' => 'admin@rencanaku.test'],
-            ['name' => 'Admin RencanaKU', 'password' => 'admin12345']
+            ['email' => config('rencanaku.demo_seed.email')],
+            ['name' => 'Admin RencanaKU', 'password' => $demoPassword, 'role' => User::ROLE_USER]
         );
 
         $projects = [
