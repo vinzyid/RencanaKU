@@ -64,6 +64,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Terbitkan token login SPA dengan masa berlaku sesuai pilihan "Ingat saya"
+     * (lihat config rencanaku.auth). Token milik user ini yang sudah kedaluwarsa
+     * sekaligus dibersihkan agar tidak menumpuk di database.
+     */
+    public function issueSpaToken(bool $remember = false): string
+    {
+        $minutes = $remember
+            ? (int) config('rencanaku.auth.remember_minutes')
+            : (int) config('rencanaku.auth.session_minutes');
+
+        $this->tokens()->where('expires_at', '<', now())->delete();
+
+        return $this->createToken('spa', ['*'], now()->addMinutes($minutes))->plainTextToken;
+    }
+
+    /**
      * Pakai notifikasi atur ulang kita sendiri agar tautan mengarah ke
      * frontend SPA (bukan route web Laravel yang tidak ada di backend ini).
      */

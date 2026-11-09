@@ -1,5 +1,23 @@
 export const STORAGE_KEY = 'rencanaku_token';
 
+// Pilihan "Ingat saya" disimpan sementara selama browser pergi ke Google/GitHub,
+// lalu dibaca sekali saat kode OAuth ditukar dengan token.
+const OAUTH_REMEMBER_KEY = 'rencanaku_oauth_remember';
+
+export function rememberOAuthChoice(remember) {
+    try { sessionStorage.setItem(OAUTH_REMEMBER_KEY, remember ? '1' : '0'); } catch { /* abaikan */ }
+}
+
+export function consumeOAuthChoice() {
+    try {
+        const value = sessionStorage.getItem(OAUTH_REMEMBER_KEY);
+        sessionStorage.removeItem(OAUTH_REMEMBER_KEY);
+        return value === '1';
+    } catch {
+        return false;
+    }
+}
+
 // Base URL backend. Kosong = pakai path relatif (dev proxy Vite / satu domain).
 // Produksi terpisah: set VITE_API_URL=https://api.domain.com
 export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');

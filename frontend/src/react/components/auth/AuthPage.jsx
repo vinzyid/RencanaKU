@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { brandLogo, sun, moon, google, github, spinner, back } from '../../utils/icons.js';
-import { API_BASE } from '../../utils/api.js';
+import { API_BASE, rememberOAuthChoice } from '../../utils/api.js';
 
 // Tentukan halaman awal setelah login: admin langsung ke console, selain itu
 // ke workspace.
@@ -21,6 +21,9 @@ export default function AuthPage() {
     const [showPwd, setShowPwd] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
+    // "Ingat saya" menentukan lama login berlaku (30 hari vs 1 hari). Menutup
+    // browser tidak pernah logout. Pilihan juga dibawa ke login Google/GitHub.
+    const [remember, setRemember] = useState(false);
 
     useEffect(() => {
         if (isAuthenticated) navigate(landingPathFor(user), { replace: true });
@@ -36,7 +39,7 @@ export default function AuthPage() {
         setError('');
 
         const formData = new FormData(e.target);
-        const payload = Object.fromEntries(formData);
+        const payload = { ...Object.fromEntries(formData), remember };
 
         try {
             const data = await login(isRegister ? '/register' : '/login', payload);
@@ -104,7 +107,7 @@ export default function AuthPage() {
                             </div>
 
                             <div className="flex items-center gap-2 pt-1">
-                                <input type="checkbox" id="remember" className="w-4 h-4 rounded text-[#5B4DF6] focus:ring-[#5B4DF6] border-slate-300" />
+                                <input type="checkbox" id="remember" name="remember" value="1" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="w-4 h-4 rounded text-[#5B4DF6] focus:ring-[#5B4DF6] border-slate-300" />
                                 <label htmlFor="remember" className="text-xs text-slate-600 dark:text-slate-400 font-medium cursor-pointer">Ingat saya</label>
                             </div>
 
@@ -123,10 +126,10 @@ export default function AuthPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <a href={`${API_BASE}/oauth/google`} className="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
+                            <a href={`${API_BASE}/oauth/google`} onClick={() => rememberOAuthChoice(remember)} className="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
                                 <span dangerouslySetInnerHTML={{ __html: google }} /> Google
                             </a>
-                            <a href={`${API_BASE}/oauth/github`} className="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
+                            <a href={`${API_BASE}/oauth/github`} onClick={() => rememberOAuthChoice(remember)} className="btn-secondary py-2.5 text-xs font-semibold border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2 no-underline">
                                 <span dangerouslySetInnerHTML={{ __html: github }} /> GitHub
                             </a>
                         </div>

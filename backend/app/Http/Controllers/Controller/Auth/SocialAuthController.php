@@ -57,6 +57,7 @@ class SocialAuthController extends Controller
     {
         $data = $request->validate([
             'code' => 'required|string|max:128',
+            'remember' => 'sometimes|boolean',
         ]);
 
         $user = $this->codes->consume($data['code']);
@@ -69,7 +70,7 @@ class SocialAuthController extends Controller
 
         // Token sengaja dibuat pada request POST ini, bukan saat redirect,
         // agar tidak pernah transit di URL.
-        $token = $user->createToken('spa')->plainTextToken;
+        $token = $user->issueSpaToken($request->boolean('remember'));
 
         return response()->json([
             'token' => $token,

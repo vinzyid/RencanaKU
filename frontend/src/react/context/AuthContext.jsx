@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { api, configureApi, STORAGE_KEY, API_BASE } from '../utils/api.js';
+import { api, configureApi, consumeOAuthChoice, STORAGE_KEY, API_BASE } from '../utils/api.js';
 
 const AuthContext = createContext(null);
 
@@ -84,7 +84,7 @@ export function AuthProvider({ children }) {
                 const response = await fetch(`${API_BASE}/api/oauth/token/complete`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                    body: JSON.stringify({ code: oauthCode }),
+                    body: JSON.stringify({ code: oauthCode, remember: consumeOAuthChoice() }),
                 });
                 const data = await response.json().catch(() => null);
                 if (!response.ok || !data?.token) {

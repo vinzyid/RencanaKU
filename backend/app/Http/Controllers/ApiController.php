@@ -40,18 +40,25 @@ class ApiController extends Controller
             'name' => 'required|string|max:120',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
+            'remember' => 'sometimes|boolean',
         ]);
 
+        $remember = $request->boolean('remember');
+        unset($data['remember']);
         $data['role'] = User::roleForEmail($data['email']);
 
         $user = User::create($data);
 
-        return $this->tokenResponse($user, 201);
+        return $this->tokenResponse($user, 201, $remember);
     }
 
     public function login(Request $request)
     {
-        $data = $request->validate(['email' => 'required|email', 'password' => 'required|string']);
+        $data = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+            'remember' => 'sometimes|boolean',
+        ]);
         $user = User::where('email', $data['email'])->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
@@ -69,7 +76,7 @@ class ApiController extends Controller
             return response()->json(['message' => 'Email atau password salah.'], 422);
         }
 
-        return $this->tokenResponse($user);
+        return $this->tokenResponse($user, 200, $request->boolean('remember'));
     }
 
     /**
@@ -777,9 +784,9 @@ class ApiController extends Controller
         }, self::DB_TRANSACTION_ATTEMPTS);
     }
 
-    private function tokenResponse(User $user, int $status = 200)
+    private function tokenResponse(User $user, int $status = 200, bool $remember = false)
     {
-        $token = $user->createToken('spa')->plainTextToken;
+        $token = $user->issueSpaToken($remember);
 
         // Response user disanitasi lewat UserResource agar field "role" mentah
         // tidak bocor ke klien (Masalah #12).

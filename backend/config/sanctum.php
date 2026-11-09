@@ -49,7 +49,10 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Batas maksimum umur token mana pun (menit), termasuk token lama yang
+    // expires_at-nya kosong. Disamakan dengan masa "Ingat saya" agar tidak ada
+    // token yang berlaku selamanya. Lihat config/rencanaku.php.
+    'expiration' => (int) env('AUTH_REMEMBER_MINUTES', 60 * 24 * 30),
 
     /*
     |--------------------------------------------------------------------------

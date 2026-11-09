@@ -64,6 +64,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Masa Berlaku Sesi Login (token Sanctum)
+    |--------------------------------------------------------------------------
+    | Token tetap tersimpan di browser walau tab/Chrome ditutup, sehingga
+    | pengguna tidak kehilangan pekerjaannya. Pilihan "Ingat saya" hanya
+    | menentukan BERAPA LAMA login berlaku:
+    |   - dicentang       : remember_minutes (default 30 hari)
+    |   - tidak dicentang : session_minutes  (default 1 hari)
+    */
+    'auth' => [
+        'remember_minutes' => (int) env('AUTH_REMEMBER_MINUTES', 60 * 24 * 30),
+        'session_minutes' => (int) env('AUTH_SESSION_MINUTES', 60 * 24),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Akun Admin untuk Seeder
     |--------------------------------------------------------------------------
     | Dipakai oleh AdminUserSeeder. Sengaja dibaca dari .env (bukan ditulis di
