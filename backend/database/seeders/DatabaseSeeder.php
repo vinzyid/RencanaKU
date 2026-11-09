@@ -16,16 +16,30 @@ class DatabaseSeeder extends Seeder
         // Akun demo + proyek contoh. Kata sandinya dibaca dari .env
         // (DEMO_SEED_PASSWORD), jangan ditulis di kode/README: repo ini publik.
         // Akun demo selalu role "user", bukan admin.
+        $demoEmail = mb_strtolower(trim((string) config('rencanaku.demo_seed.email')));
         $demoPassword = (string) config('rencanaku.demo_seed.password');
 
-        if (mb_strlen($demoPassword) < 8) {
-            $this->command?->warn('Akun & proyek demo dilewati: isi DEMO_SEED_PASSWORD (min. 8 karakter) di .env.');
+        if ($demoEmail === '' || mb_strlen($demoPassword) < 8) {
+            $this->command?->warn('Akun & proyek demo dilewati: isi DEMO_SEED_EMAIL dan DEMO_SEED_PASSWORD (min. 8 karakter) di .env.');
+
+            return;
+        }
+
+        // Jangan sampai akun demo menimpa akun admin sungguhan (role diturunkan
+        // dan kata sandinya diganti) karena salah isi .env.
+        $adminEmails = array_merge(
+            config('rencanaku.admin_emails', []),
+            [mb_strtolower(trim((string) config('rencanaku.admin_seed.email')))],
+        );
+
+        if (in_array($demoEmail, $adminEmails, true) || User::where('email', $demoEmail)->where('role', User::ROLE_ADMIN)->exists()) {
+            $this->command?->warn("Akun & proyek demo dilewati: {$demoEmail} adalah akun admin, gunakan email lain untuk DEMO_SEED_EMAIL.");
 
             return;
         }
 
         $admin = User::updateOrCreate(
-            ['email' => config('rencanaku.demo_seed.email')],
+            ['email' => $demoEmail],
             ['name' => 'Admin RencanaKU', 'password' => $demoPassword, 'role' => User::ROLE_USER]
         );
 
