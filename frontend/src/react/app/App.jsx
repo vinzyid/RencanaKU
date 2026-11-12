@@ -1,5 +1,8 @@
+import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { markSplashReady } from '../utils/splash.js';
+import { AppLoader, GlobalLoadingBar } from '../components/common/LoadingIndicator.jsx';
 import LandingPage from '../components/landing/LandingPage.jsx';
 import AuthPage from '../components/auth/AuthPage.jsx';
 import ForgotPasswordPage from '../components/auth/ForgotPasswordPage.jsx';
@@ -19,17 +22,9 @@ import AdminUsers from '../components/admin/AdminUsers.jsx';
 import AdminTokens from '../components/admin/AdminTokens.jsx';
 import AdminGreen from '../components/admin/AdminGreen.jsx';
 
-function FullScreenLoader() {
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-[#F8F9FD] dark:bg-[#0B0D14]">
-            <div className="w-10 h-10 border-4 border-indigo-200 border-t-[#5B4DF6] rounded-full animate-spin" />
-        </div>
-    );
-}
-
 function RequireAuth({ children }) {
     const { isAuthenticated, bootstrapping, user } = useAuth();
-    if (bootstrapping) return <FullScreenLoader />;
+    if (bootstrapping) return <AppLoader />;
     if (!isAuthenticated) return <Navigate to="/" replace />;
     // Admin murni hanya area admin.
     if (user?.is_admin) return <Navigate to="/admin/overview" replace />;
@@ -38,14 +33,22 @@ function RequireAuth({ children }) {
 
 function RequireAdmin({ children }) {
     const { isAuthenticated, bootstrapping, user } = useAuth();
-    if (bootstrapping) return <FullScreenLoader />;
+    if (bootstrapping) return <AppLoader />;
     if (!isAuthenticated) return <Navigate to="/" replace />;
     if (!user?.is_admin) return <Navigate to="/app/dashboard" replace />;
     return children;
 }
 
 export default function App() {
+    // Aplikasi sudah ter-mount: splash pembuka boleh ditutup (kecuali masih
+    // ditahan oleh layar yang sedang memuat, lihat AppLoader).
+    useEffect(() => {
+        markSplashReady();
+    }, []);
+
     return (
+        <>
+        <GlobalLoadingBar />
         <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
@@ -85,5 +88,6 @@ export default function App() {
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </>
     );
 }

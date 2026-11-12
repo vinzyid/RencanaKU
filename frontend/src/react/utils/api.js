@@ -30,7 +30,48 @@ export function configureApi(options = {}) {
     if (options.onUnauthorized) unauthorizedHandler = options.onUnauthorized;
 }
 
-export async function api(path, options = {}) {
+// --- Pelacak request yang sedang berjalan -----------------------------------
+// Dipakai indikator loading global (LoadingIndicator.jsx) agar pengguna tahu
+// aplikasi sedang menunggu server, bukan macet.
+let pendingCount = 0;
+const pendingListeners = new Set();
+
+function changePending(delta) {
+    pendingCount = Math.max(0, pendingCount + delta);
+    pendingListeners.forEach((listener) => listener(pendingCount));
+}
+
+export function subscribePending(listener) {
+    pendingListeners.add(listener);
+    return () => pendingListeners.delete(listener);
+}
+
+export function getPendingCount() {
+    return pendingCount;
+}
+
+async function trackPending(silent, run) {
+    if (silent) return run();
+
+    changePending(1);
+    try {
+        return await run();
+    } finally {
+        changePending(-1);
+    }
+}
+
+/**
+ * Panggil API backend. Opsi `silent: true` membuat request tidak memicu
+ * indikator loading global — dipakai untuk polling di latar belakang.
+ */
+export function api(path, options = {}) {
+    const { silent = false, ...fetchOptions } = options;
+
+    return trackPending(silent, () => request(path, fetchOptions));
+}
+
+async function request(path, options) {
     const token = tokenGetter();
 
     const response = await fetch(`${API_BASE}/api${path}`, {
@@ -74,7 +115,11 @@ export async function api(path, options = {}) {
     return data;
 }
 
-export async function triggerExport(projectId, format, projectTitle) {
+export function triggerExport(projectId, format, projectTitle) {
+    return trackPending(false, () => downloadExport(projectId, format, projectTitle));
+}
+
+async function downloadExport(projectId, format, projectTitle) {
     const token = tokenGetter();
 
     const res = await fetch(`${API_BASE}/api/projects/${projectId}/export/${format}`, {

@@ -55,7 +55,9 @@ export function ProjectProvider({ children }) {
         while (Date.now() - startedAt < maxMs) {
             await new Promise((resolve) => setTimeout(resolve, intervalMs));
             try {
-                const data = await api(`/projects/${projectId}`);
+                // Polling latar belakang: chat sudah punya indikator "sedang
+                // memproses" sendiri, jadi jangan picu indikator loading global.
+                const data = await api(`/projects/${projectId}`, { silent: true });
                 applyProjectPayload(data);
                 if ((data.prd_status || data.project?.prd_status) !== 'processing') {
                     if (data.prd_error) {
