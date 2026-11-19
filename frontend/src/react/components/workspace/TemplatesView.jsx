@@ -39,7 +39,7 @@ export default function TemplatesView() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {TEMPLATES.map((tpl) => (
-                    <div key={tpl.title} className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-[#5B4DF6] dark:hover:border-[#5B4DF6] transition flex flex-col justify-between group">
+                    <div key={tpl.title} className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-lg p-6 hover:shadow-md hover:border-[#5B4DF6] dark:hover:border-[#5B4DF6] transition flex flex-col justify-between group">
                         <div>
                             <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-[#5B4DF6] [&_svg]:group-hover:text-white transition duration-300" dangerouslySetInnerHTML={{ __html: tpl.icon }} />
                             <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-2 font-heading group-hover:text-[#5B4DF6] transition">{tpl.title}</h3>

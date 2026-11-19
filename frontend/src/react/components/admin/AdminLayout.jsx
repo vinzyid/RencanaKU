@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
@@ -8,7 +8,7 @@ import { brandLogo, sun, moon, spinner, logout as logoutIcon, navHome } from '..
 
 function NavIcon({ name }) {
     const common = {
-        className: 'h-[18px] w-[18px]',
+        className: 'h-4 w-4',
         viewBox: '0 0 24 24',
         fill: 'none',
         stroke: 'currentColor',
@@ -67,6 +67,7 @@ export default function AdminLayout() {
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
+    const location = useLocation();
     const [busy, setBusy] = useState(false);
 
     const handleLogout = async () => {
@@ -76,99 +77,94 @@ export default function AdminLayout() {
         navigate('/', { replace: true });
     };
 
+    const current = ADMIN_NAV.find((item) => location.pathname.startsWith(item.to));
+
     return (
         <div className="flex min-h-screen flex-col bg-[#F8F9FD] text-slate-800 transition-colors dark:bg-[#0B0D14] dark:text-slate-100 md:flex-row">
-            <aside className="flex w-full shrink-0 flex-col justify-between border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-[#121624] md:h-screen md:w-64 md:sticky md:top-0 md:border-b-0 md:border-r">
-                <div className="p-5">
-                    <button onClick={() => navigate('/')} className="flex items-center gap-3 text-left" title="Kembali ke Landing Page">
+            <aside className="flex w-full shrink-0 flex-col border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-[#10131F] md:h-screen md:w-60 md:sticky md:top-0 md:border-b-0 md:border-r">
+                <div className="px-4 pt-5 pb-4">
+                    <button onClick={() => navigate('/')} className="flex items-center gap-2.5 text-left" title="Kembali ke Beranda">
                         <span dangerouslySetInnerHTML={{ __html: brandLogo }} />
-                        <div className="leading-tight">
-                            <span className="block text-xl font-bold tracking-tight text-slate-900 dark:text-white font-heading">RencanaKU</span>
-                            <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-[#5B4DF6]">Admin Panel</span>
-                        </div>
+                        <span className="leading-tight">
+                            <span className="block text-lg font-bold tracking-tight text-slate-900 dark:text-white font-heading">RencanaKU</span>
+                            <span className="block text-[11px] text-slate-400">Panel admin</span>
+                        </span>
                     </button>
-
-                    <nav className="mt-7 space-y-1">
-                        {ADMIN_NAV.map((item) => (
-                            <NavLink
-                                key={item.to}
-                                to={item.to}
-                                className={({ isActive }) =>
-                                    `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs transition ${
-                                        isActive
-                                            ? 'bg-indigo-50 font-bold text-[#5B4DF6] dark:bg-indigo-950/60'
-                                            : 'font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
-                                    }`
-                                }
-                            >
-                                <span className="text-[#5B4DF6] dark:text-indigo-400"><NavIcon name={item.icon} /></span>
-                                <span className="flex-1">
-                                    <span className="block">{item.label}</span>
-                                    <span className="block text-[10.5px] font-normal text-slate-400">{item.hint}</span>
-                                </span>
-                            </NavLink>
-                        ))}
-                    </nav>
                 </div>
 
-                <div className="border-t border-slate-100 p-5 dark:border-slate-800/80">
-                    <div className="mb-3 rounded-2xl border border-slate-200/70 bg-slate-50/90 p-2.5 dark:border-slate-700/60 dark:bg-slate-800/50">
-                        <div className="mb-2.5 flex items-center gap-2.5">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#5B4DF6] to-indigo-500 text-xs font-bold text-white">
-                                {initialsOf(user?.name)}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <div className="truncate text-xs font-bold text-slate-900 dark:text-white">{user?.name}</div>
-                                <div className="truncate text-[11px] text-slate-400">{user?.email}</div>
-                            </div>
+                <nav className="mt-2 px-3">
+                    {ADMIN_NAV.map((item) => (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            className={({ isActive }) =>
+                                `relative flex items-center gap-3 rounded-md px-3 py-2 text-[13px] transition ${
+                                    isActive
+                                        ? 'bg-slate-100/80 font-semibold text-slate-900 dark:bg-slate-800/60 dark:text-white [&_.nav-ico]:text-[#5B4DF6] [&_.nav-bar]:block'
+                                        : 'font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                                }`
+                            }
+                        >
+                            <span className="nav-bar absolute left-0 top-1.5 bottom-1.5 hidden w-[3px] rounded-full bg-[#5B4DF6]" />
+                            <span className="nav-ico flex h-4 w-4 items-center justify-center"><NavIcon name={item.icon} /></span>
+                            <span>{item.label}</span>
+                        </NavLink>
+                    ))}
+                </nav>
+
+                <div className="mt-auto border-t border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2.5 px-4 py-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#5B4DF6] text-[11px] font-bold text-white">
+                            {initialsOf(user?.name)}
                         </div>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#5B4DF6] dark:bg-indigo-950/60 dark:text-indigo-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#5B4DF6]" /> Administrator
-                        </span>
+                        <div className="min-w-0 flex-1">
+                            <div className="truncate text-xs font-semibold text-slate-900 dark:text-white">{user?.name}</div>
+                            <div className="truncate text-[10.5px] text-slate-400">Administrator · {user?.email}</div>
+                        </div>
+                        <button
+                            onClick={handleLogout}
+                            disabled={busy}
+                            title="Keluar"
+                            aria-label="Keluar"
+                            className="rounded-md p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
+                        >
+                            <span className="flex items-center" dangerouslySetInnerHTML={{ __html: busy ? spinner : logoutIcon }} />
+                        </button>
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        disabled={busy}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:border-rose-900/50 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
-                    >
-                        {busy
-                            ? <><span dangerouslySetInnerHTML={{ __html: spinner }} /> <span>Memproses...</span></>
-                            : <><span dangerouslySetInnerHTML={{ __html: logoutIcon }} /> <span>Keluar</span></>}
-                    </button>
                 </div>
             </aside>
 
             <main className="flex min-w-0 flex-1 flex-col">
-                <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white/70 px-6 backdrop-blur-md dark:border-slate-800 dark:bg-[#121624]/70 sm:px-8">
-                    <div className="text-xs font-semibold text-slate-400">
-                        <span className="text-[#5B4DF6] font-bold">Admin</span>
-                        <span className="mx-1.5 text-slate-300 dark:text-slate-700">/</span>
-                        <span>Panel Kontrol</span>
+                <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-slate-200 bg-[#F8F9FD]/85 px-6 backdrop-blur dark:border-slate-800 dark:bg-[#0B0D14]/85 sm:px-10">
+                    <div className="flex min-w-0 items-center gap-2 text-[13px]">
+                        <span className="text-slate-400">Admin</span>
+                        <span className="text-slate-300 dark:text-slate-700">/</span>
+                        <span className="truncate font-semibold text-slate-900 dark:text-white">{current?.label || 'Panel'}</span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
                         <button
                             onClick={() => navigate('/')}
-                            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-[#5B4DF6] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-                            title="Kembali ke Landing Page"
+                            className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                            title="Beranda"
+                            aria-label="Beranda"
                         >
                             <span className="flex items-center" dangerouslySetInnerHTML={{ __html: navHome }} />
-                            <span className="hidden sm:inline">Beranda</span>
                         </button>
                         <button
                             onClick={toggleTheme}
-                            className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                            className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
                             title={theme === 'dark' ? 'Mode terang' : 'Mode gelap'}
+                            aria-label="Ganti tema"
                         >
-                            <span dangerouslySetInnerHTML={{ __html: theme === 'dark' ? sun : moon }} />
+                            <span className="flex items-center" dangerouslySetInnerHTML={{ __html: theme === 'dark' ? sun : moon }} />
                         </button>
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#5B4DF6] text-xs font-bold text-white shadow-sm">
-                            {initialsOf(user?.name)}
-                        </div>
                     </div>
                 </header>
 
-                <div className="flex-1 p-6 sm:p-8">
-                    <Outlet />
+                <div className="flex-1 px-4 py-6 sm:px-10 sm:py-8">
+                    <div className="max-w-6xl">
+                        <Outlet />
+                    </div>
                 </div>
             </main>
         </div>

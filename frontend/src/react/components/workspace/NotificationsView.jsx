@@ -31,7 +31,7 @@ export default function NotificationsView() {
             ) : (
                 <div className="space-y-3">
                     {notifications.map((notif) => (
-                        <div key={notif.id} className={`relative bg-white dark:bg-[#121624] border ${notif.isRead ? 'border-slate-200/60 dark:border-slate-800/60' : 'border-[#5B4DF6]/30 dark:border-[#5B4DF6]/40'} rounded-2xl p-5 sm:p-6 flex gap-4 sm:gap-5 transition hover:shadow-md group`}>
+                        <div key={notif.id} className={`relative bg-white dark:bg-[#121624] border ${notif.isRead ? 'border-slate-200/60 dark:border-slate-800/60' : 'border-[#5B4DF6]/30 dark:border-[#5B4DF6]/40'} rounded-lg p-5 sm:p-6 flex gap-4 sm:gap-5 transition hover:shadow-md group`}>
                             {!notif.isRead && <div className="absolute top-5 right-5 w-2.5 h-2.5 bg-[#5B4DF6] rounded-full shadow-[0_0_8px_rgba(91,77,246,0.5)]" />}
                             <div className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full flex items-center justify-center ${notif.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20' : notif.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-indigo-50 dark:bg-indigo-900/20'}`} dangerouslySetInnerHTML={{ __html: notif.icon }} />
                             <div className="flex-1 min-w-0 pr-6">

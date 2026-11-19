@@ -37,7 +37,7 @@ function ProjectCard({ project, index }) {
     };
 
     return (
-        <div onClick={() => navigate(`/app/projects/${project.id}`)} className="h-48 bg-white dark:bg-[#121624] rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-900/50 hover:shadow-md transition cursor-pointer flex flex-col justify-between group">
+        <div onClick={() => navigate(`/app/projects/${project.id}`)} className="h-48 bg-white dark:bg-[#121624] rounded-lg p-5 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-900/50 hover:shadow-md transition cursor-pointer flex flex-col justify-between group">
             <div>
                 <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
@@ -72,8 +72,8 @@ export default function ProjectsView() {
 
     const filteredProjects = projects.filter((p) => {
         if (!shell.searchQuery) return true;
-        return p.title.toLowerCase().includes(shell.searchQuery) ||
-            (p.prompt && p.prompt.toLowerCase().includes(shell.searchQuery));
+        return p.title.toLowerCase().includes(shell.searchQuery.toLowerCase()) ||
+            (p.prompt && p.prompt.toLowerCase().includes(shell.searchQuery.toLowerCase()));
     });
 
     return (
@@ -91,7 +91,7 @@ export default function ProjectsView() {
                         <option>Final</option>
                         <option>Draft</option>
                     </select>
-                    <button onClick={() => shell.openNewProjectModal()} className="btn-primary text-xs px-4 py-2 font-bold shadow-sm flex items-center gap-2">
+                    <button onClick={() => shell.openNewProjectModal()} className="btn-primary text-xs px-4 py-2 font-bold flex items-center gap-2">
                         <span dangerouslySetInnerHTML={{ __html: plus }} /> <span>Proyek Baru</span>
                     </button>
                 </div>
@@ -102,7 +102,7 @@ export default function ProjectsView() {
                     <ProjectCard key={project.id} project={project} index={idx} />
                 ))}
 
-                <button onClick={() => shell.openNewProjectModal()} className="h-48 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-[#5B4DF6] dark:hover:border-[#5B4DF6] hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 flex flex-col items-center justify-center p-6 text-center transition group">
+                <button onClick={() => shell.openNewProjectModal()} className="h-48 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-[#5B4DF6] dark:hover:border-[#5B4DF6] hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 flex flex-col items-center justify-center p-6 text-center transition group">
                     <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950 text-[#5B4DF6] flex items-center justify-center mb-3 group-hover:scale-110 transition">
                         <span dangerouslySetInnerHTML={{ __html: plus }} />
                     </div>

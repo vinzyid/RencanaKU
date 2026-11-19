@@ -34,7 +34,7 @@ export default function ExportModal() {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-            <div className="w-full max-w-md bg-white dark:bg-[#121624] rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6">
+            <div className="w-full max-w-md bg-white dark:bg-[#121624] rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-lg font-extrabold text-slate-900 dark:text-white font-heading">Export PRD</h2>
@@ -50,7 +50,7 @@ export default function ExportModal() {
                         <button
                             key={f.value}
                             onClick={() => setFormat(f.value)}
-                            className={`w-full flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition text-left ${format === f.value ? 'border-[#5B4DF6] bg-indigo-50/50 dark:bg-indigo-950/40' : 'border-slate-200 dark:border-slate-800'}`}
+                            className={`w-full flex items-center justify-between p-4 rounded-lg border cursor-pointer transition text-left ${format === f.value ? 'border-[#5B4DF6] bg-indigo-50/50 dark:bg-indigo-950/40' : 'border-slate-200 dark:border-slate-800'}`}
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0" dangerouslySetInnerHTML={{ __html: f.icon }} />

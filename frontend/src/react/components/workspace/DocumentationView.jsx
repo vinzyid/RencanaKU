@@ -152,7 +152,7 @@ export default function DocumentationView() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                <div className="lg:col-span-8 bg-white dark:bg-[#121624] p-8 sm:p-10 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm min-h-[600px] flex flex-col justify-between">
+                <div className="lg:col-span-8 bg-white dark:bg-[#121624] p-8 sm:p-10 rounded-lg border border-slate-200/80 dark:border-slate-800 min-h-[600px] flex flex-col justify-between">
                     <div>
                         {activeDocTab === 'markdown' && (
                             <pre className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-xs font-mono overflow-x-auto text-slate-800 dark:text-slate-200 whitespace-pre-wrap">{generateMarkdown(prd)}</pre>
@@ -285,7 +285,7 @@ export default function DocumentationView() {
                 </div>
 
                 <div className="lg:col-span-4 space-y-6">
-                    <div className="bg-white dark:bg-[#121624] p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                    <div className="bg-white dark:bg-[#121624] p-6 rounded-lg border border-slate-200/80 dark:border-slate-800 space-y-4">
                         <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">Ringkasan Validasi</h3>
                         <div className="space-y-3 text-xs">
                             <div className="flex items-start gap-2.5">
@@ -305,7 +305,7 @@ export default function DocumentationView() {
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-[#121624] p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                    <div className="bg-white dark:bg-[#121624] p-6 rounded-lg border border-slate-200/80 dark:border-slate-800 space-y-4">
                         <h3 className="text-sm font-bold text-slate-900 dark:text-white font-heading">Statistik</h3>
                         <div className="space-y-2.5 text-xs">
                             {[

@@ -113,7 +113,7 @@ h1, h2, h3, h4, .font-heading {
     font-weight: 600;
     padding: 0.625rem 1.25rem;
     border-radius: 0.75rem;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 160ms ease-out, background-color 160ms ease-out, box-shadow 160ms ease-out;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -127,7 +127,7 @@ h1, h2, h3, h4, .font-heading {
     box-shadow: 0 6px 20px 0 rgba(91, 77, 246, 0.45);
 }
 .btn-primary:active:not(:disabled) {
-    transform: translateY(0);
+    transform: scale(0.97);
 }
 
 .btn-secondary {
@@ -137,7 +137,7 @@ h1, h2, h3, h4, .font-heading {
     padding: 0.625rem 1.25rem;
     border-radius: 0.75rem;
     border: 1px solid var(--border-color);
-    transition: all 0.2s ease;
+    transition: transform 160ms ease-out, background-color 160ms ease-out, border-color 160ms ease-out;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -155,7 +155,7 @@ h1, h2, h3, h4, .font-heading {
     padding: 0.5rem 1rem;
     border-radius: 0.75rem;
     border: none;
-    transition: all 0.2s ease;
+    transition: transform 160ms ease-out, background-color 160ms ease-out, color 160ms ease-out;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;

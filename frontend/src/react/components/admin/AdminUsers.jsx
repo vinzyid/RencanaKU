@@ -100,7 +100,7 @@ export default function AdminUsers() {
                 />
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#121624]">
+            <div className="overflow-hidden rounded-lg border border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-[#121624]">
                 <div className="hidden grid-cols-12 gap-4 border-b border-slate-100 px-6 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:border-slate-800/70 md:grid">
                     <div className="col-span-4">Pengguna</div>
                     <div className="col-span-3">Metode Login</div>

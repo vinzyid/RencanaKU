@@ -60,7 +60,7 @@ export default function AdminTokens() {
             />
 
             {error ? (
-                <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#121624]">
+                <div className="rounded-lg border border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-[#121624]">
                     <AdminError message={error} onRetry={load} />
                 </div>
             ) : (

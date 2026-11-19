@@ -67,7 +67,7 @@ export default function SettingsView() {
 
                 <div className="md:col-span-2 space-y-8">
                     {shell.settingsTab === 'profile' && (
-                        <div className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+                        <div className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-lg p-6 sm:p-8">
                             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-5 border-b border-slate-100 dark:border-slate-800 pb-3 font-heading">Informasi Profil</h2>
                             <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); showToast('Pembaruan profil belum diimplementasikan di backend.', 'info'); }}>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -85,14 +85,14 @@ export default function SettingsView() {
                                     <input type="text" value={user?.is_admin ? 'Administrator' : 'Pengguna Standar'} readOnly className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed text-xs" />
                                 </div>
                                 <div className="pt-2 flex justify-end">
-                                    <button type="submit" className="btn-primary px-5 py-2 text-xs font-bold shadow-sm">Simpan Perubahan</button>
+                                    <button type="submit" className="btn-primary px-5 py-2 text-xs font-bold">Simpan Perubahan</button>
                                 </div>
                             </form>
                         </div>
                     )}
 
                     {shell.settingsTab === 'preferences' && (
-                        <div className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+                        <div className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-lg p-6 sm:p-8">
                             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-5 border-b border-slate-100 dark:border-slate-800 pb-3 font-heading">Preferensi Aplikasi</h2>
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
@@ -122,7 +122,7 @@ export default function SettingsView() {
                     )}
 
                     {shell.settingsTab === 'security' && (
-                        <div className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+                        <div className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-lg p-6 sm:p-8">
                             <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-5 border-b border-slate-100 dark:border-slate-800 pb-3 font-heading">Keamanan & Sandi</h2>
                             <form className="space-y-4" onSubmit={handlePasswordChange}>
                                 {!hasPassword && (
@@ -150,7 +150,7 @@ export default function SettingsView() {
                                 </div>
                                 {pwdError ? <p className="text-xs text-rose-500 font-medium">{pwdError}</p> : null}
                                 <div className="pt-2 flex justify-end">
-                                    <button type="submit" disabled={pwdBusy} className="btn-secondary border border-slate-200 dark:border-slate-700 px-5 py-2 text-xs font-bold shadow-sm rounded-xl disabled:opacity-60">
+                                    <button type="submit" disabled={pwdBusy} className="btn-secondary border border-slate-200 dark:border-slate-700 px-5 py-2 text-xs font-bold rounded-xl disabled:opacity-60">
                                         {pwdBusy ? 'Menyimpan...' : (hasPassword ? 'Perbarui Password' : 'Setel Password')}
                                     </button>
                                 </div>

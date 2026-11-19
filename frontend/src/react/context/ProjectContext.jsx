@@ -73,9 +73,9 @@ export function ProjectProvider({ children }) {
         return null;
     }, [applyProjectPayload]);
 
-    const sendMessage = useCallback(async (content) => {
+    const sendMessage = useCallback(async (content, projectIdOverride = null) => {
         if (!content) return;
-        const projectId = project?.id;
+        const projectId = projectIdOverride || project?.id;
         if (!projectId) return;
 
         setMessages((prev) => [...prev, { id: `tmp-${Date.now()}`, sender: 'user', content, created_at: new Date().toISOString() }]);

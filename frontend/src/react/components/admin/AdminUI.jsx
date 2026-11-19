@@ -143,16 +143,14 @@ export function AdminIcon({ name, className = 'h-5 w-5' }) {
     return <svg {...common}>{paths[name] || paths.inbox}</svg>;
 }
 
+// eyebrow tetap diterima demi kompatibilitas, tapi tidak ditampilkan:
+// breadcrumb di header layout sudah memberi konteks halaman.
+// eslint-disable-next-line no-unused-vars
 export function AdminPageHeader({ eyebrow, title, description, actions }) {
     return (
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
             <div>
-                {eyebrow ? (
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-[#5B4DF6] font-heading">
-                        {eyebrow}
-                    </span>
-                ) : null}
-                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white font-heading">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white font-heading">
                     {title}
                 </h1>
                 {description ? (
@@ -166,61 +164,67 @@ export function AdminPageHeader({ eyebrow, title, description, actions }) {
 
 export function AdminCard({ title, meta, children, className = '', bodyClassName = '' }) {
     return (
-        <section className={`rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#121624] ${className}`}>
+        <section className={`rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#121624] ${className}`}>
             {(title || meta) && (
-                <header className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4 dark:border-slate-800/70">
-                    <h2 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white font-heading">{title}</h2>
-                    {meta ? <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{meta}</span> : null}
+                <header className="flex items-baseline justify-between gap-4 border-b border-slate-200 px-5 py-3.5 dark:border-slate-800">
+                    <h2 className="text-sm font-semibold text-slate-900 dark:text-white font-heading">{title}</h2>
+                    {meta ? <span className="text-[11px] text-slate-400">{meta}</span> : null}
                 </header>
             )}
-            <div className={bodyClassName || 'p-6'}>{children}</div>
+            <div className={bodyClassName || 'p-5'}>{children}</div>
         </section>
     );
 }
 
 const TILE_ACCENTS = {
     brand: 'text-[#5B4DF6] dark:text-indigo-400',
-    emerald: 'text-emerald-600 dark:text-emerald-500',
-    amber: 'text-amber-600 dark:text-amber-500',
-    rose: 'text-rose-600 dark:text-rose-500',
+    emerald: 'text-emerald-600 dark:text-emerald-400',
+    amber: 'text-amber-600 dark:text-amber-400',
+    rose: 'text-rose-600 dark:text-rose-400',
     slate: 'text-slate-900 dark:text-white',
 };
 
-const TILE_ICON_BG = {
-    brand: 'bg-indigo-50 dark:bg-indigo-950/60 text-[#5B4DF6] dark:text-indigo-400',
-    emerald: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-500',
-    amber: 'bg-amber-50 dark:bg-amber-950/60 text-amber-500',
-    rose: 'bg-rose-50 dark:bg-rose-950/60 text-rose-500',
-    slate: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300',
-};
-
-export function AdminStatTile({ label, value, sub, accent = 'brand', icon, loading }) {
+// Tile tunggal (dipakai halaman Token & Green dalam grid).
+export function AdminStatTile({ label, value, sub, accent = 'slate', icon, loading }) {
     return (
-        <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#121624]">
-            {icon ? (
-                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${TILE_ICON_BG[accent] || TILE_ICON_BG.brand}`}>
-                    <AdminIcon name={icon} className="h-6 w-6" />
-                </div>
-            ) : null}
-            <div className="min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</div>
-                <div className={`text-2xl font-extrabold tracking-tight font-heading ${TILE_ACCENTS[accent] || TILE_ACCENTS.brand}`}>
-                    {loading ? '—' : typeof value === 'number' ? formatNumber(value) : value}
-                </div>
-                {sub ? <div className="mt-0.5 text-[11px] text-slate-400">{sub}</div> : null}
+        <div className="rounded-lg border border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-[#121624]">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                {icon ? <AdminIcon name={icon} className="h-3.5 w-3.5 text-slate-400" /> : null}
+                <span>{label}</span>
             </div>
+            <div className={`mt-2 text-2xl font-bold tabular-nums tracking-tight font-heading ${TILE_ACCENTS[accent] || TILE_ACCENTS.slate}`}>
+                {loading ? '—' : typeof value === 'number' ? formatNumber(value) : value}
+            </div>
+            {sub ? <div className="mt-0.5 text-[11px] text-slate-400">{sub}</div> : null}
         </div>
     );
 }
 
+// Beberapa angka dalam satu strip bergaris pemisah (bukan kartu terpisah).
+const STRIP_BORDERS = ['', 'border-l', 'border-t lg:border-t-0 lg:border-l', 'border-t border-l lg:border-t-0'];
+
+export function AdminStatStrip({ items, loading }) {
+    return (
+        <div className="grid grid-cols-2 rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#121624] lg:grid-cols-4">
+            {items.map((it, i) => (
+                <div key={it.label} className={`border-slate-200 px-5 py-5 dark:border-slate-800 ${STRIP_BORDERS[i] || ''}`}>
+                    <div className={`text-3xl font-bold tabular-nums tracking-tight font-heading ${TILE_ACCENTS[it.accent] || TILE_ACCENTS.slate}`}>
+                        {loading ? '—' : typeof it.value === 'number' ? formatNumber(it.value) : it.value}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{it.label}</div>
+                    {it.sub ? <div className="mt-0.5 text-[11px] text-slate-400">{it.sub}</div> : null}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// eslint-disable-next-line no-unused-vars
 export function AdminEmpty({ title, hint, icon = 'inbox' }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
-                <AdminIcon name={icon} className="h-6 w-6" />
-            </div>
-            <div className="text-sm font-bold text-slate-800 dark:text-white font-heading">{title}</div>
-            {hint ? <div className="max-w-[44ch] text-xs text-slate-500 dark:text-slate-400">{hint}</div> : null}
+        <div className="py-12 px-1">
+            <div className="text-sm font-semibold text-slate-800 dark:text-white">{title}</div>
+            {hint ? <div className="mt-1 max-w-[48ch] text-xs text-slate-500 dark:text-slate-400">{hint}</div> : null}
         </div>
     );
 }
@@ -241,14 +245,11 @@ export function AdminSkeleton({ rows = 4 }) {
 
 export function AdminError({ message, onRetry }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-500 dark:bg-rose-950/40">
-                <AdminIcon name="alert" className="h-6 w-6" />
-            </div>
-            <div className="text-sm font-bold text-slate-800 dark:text-white font-heading">Gagal memuat data</div>
-            <div className="max-w-[48ch] text-xs text-rose-500">{message}</div>
+        <div className="flex flex-col items-start gap-2 border-l-2 border-rose-500 px-5 py-6">
+            <div className="text-sm font-semibold text-slate-800 dark:text-white">Gagal memuat data</div>
+            <div className="max-w-[56ch] text-xs text-rose-600 dark:text-rose-400">{message}</div>
             {onRetry ? (
-                <button onClick={onRetry} className="btn-secondary mt-1 px-4 py-2 text-xs font-semibold">
+                <button onClick={onRetry} className="mt-1 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
                     Coba lagi
                 </button>
             ) : null}
@@ -261,7 +262,7 @@ export function ProviderChip({ provider, active, onClick, count }) {
     return (
         <button
             onClick={onClick}
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition ${
+            className={`inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs font-semibold transition ${
                 active
                     ? 'border-[#5B4DF6] bg-indigo-50 text-[#5B4DF6] dark:border-indigo-500 dark:bg-indigo-950/50 dark:text-indigo-300'
                     : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200'

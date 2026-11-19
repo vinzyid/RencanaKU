@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useProject } from '../../context/ProjectContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -44,7 +44,7 @@ function Stepper({ stage }) {
 function TypingIndicator() {
     return (
         <div className="flex items-start gap-3.5">
-            <div className="w-8 h-8 rounded-full bg-[#5B4DF6] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">R</div>
+            <div className="w-8 h-8 rounded-full bg-[#5B4DF6] text-white flex items-center justify-center font-bold text-xs shrink-0">R</div>
             <div className="chat-bubble-ai p-4 space-y-2">
                 <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
                     <span>RencanaKU sedang memproses ide kamu...</span>
@@ -63,7 +63,7 @@ function ChatThread({ messages, onChip }) {
     if (!messages.length) {
         return (
             <div className="flex items-start gap-3.5">
-                <div className="w-8 h-8 rounded-full bg-[#5B4DF6] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">R</div>
+                <div className="w-8 h-8 rounded-full bg-[#5B4DF6] text-white flex items-center justify-center font-bold text-xs shrink-0">R</div>
                 <div className="space-y-2 max-w-xl">
                     <div className="chat-bubble-ai p-4">
                         <div className="text-xs sm:text-sm leading-relaxed">
@@ -93,7 +93,7 @@ function ChatThread({ messages, onChip }) {
 
         return (
             <div key={message.id || i} className="flex items-start gap-3.5">
-                <div className="w-8 h-8 rounded-full bg-[#5B4DF6] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">R</div>
+                <div className="w-8 h-8 rounded-full bg-[#5B4DF6] text-white flex items-center justify-center font-bold text-xs shrink-0">R</div>
                 <div className="space-y-3 max-w-xl">
                     <div className="chat-bubble-ai p-4 text-xs sm:text-sm leading-relaxed space-y-2">
                         <div dangerouslySetInnerHTML={{ __html: nl2br(message.content) }} />
@@ -124,9 +124,32 @@ export default function ProjectView() {
     const [error, setError] = useState('');
     const [isFinalizing, setIsFinalizing] = useState(false);
     const threadRef = useRef(null);
+    const location = useLocation();
+    const sentInitialRef = useRef(null);
 
     useEffect(() => {
         let cancelled = false;
+
+        // Datang dari halaman "New Project" (chat langsung): proyek sudah
+        // dibuat dan dimuat ke context, tinggal kirim pesan pertamanya.
+        const initialMessage = location.state?.initialMessage;
+        if (initialMessage) {
+            if (sentInitialRef.current === id) return undefined;
+            sentInitialRef.current = id;
+            navigate(location.pathname, { replace: true, state: null });
+            (async () => {
+                try {
+                    await sendMessage(initialMessage, id);
+                } catch (err) {
+                    setError(err.message);
+                    openProject(id).catch(() => {});
+                } finally {
+                    refreshProjects().catch(() => {});
+                }
+            })();
+            return undefined;
+        }
+
         (async () => {
             try {
                 await openProject(id);
@@ -135,6 +158,7 @@ export default function ProjectView() {
             }
         })();
         return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, openProject, showToast]);
 
     useEffect(() => {
@@ -178,7 +202,7 @@ export default function ProjectView() {
 
     const handleBack = () => {
         resetProjectState();
-        navigate('/app/dashboard');
+        navigate('/app/new');
     };
 
     const isFinalized = prd?.status === 'finalized';
@@ -199,11 +223,11 @@ export default function ProjectView() {
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto">
-            <div className="bg-white dark:bg-[#121624] p-4 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <div className="bg-white dark:bg-[#121624] p-4 sm:p-6 rounded-lg border border-slate-200/80 dark:border-slate-800">
                 <Stepper stage={stage} />
             </div>
 
-            <div className="bg-white dark:bg-[#121624] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col h-[650px] overflow-hidden">
+            <div className="bg-white dark:bg-[#121624] rounded-lg border border-slate-200/80 dark:border-slate-800 flex flex-col h-[650px] overflow-hidden">
                 <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <button onClick={handleBack} className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
@@ -241,7 +265,7 @@ export default function ProjectView() {
                 </div>
 
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
-                    <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 shadow-sm focus-within:ring-2 focus-within:ring-[#5B4DF6]">
+                    <form onSubmit={handleSubmit} className="flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 focus-within:ring-2 focus-within:ring-[#5B4DF6]">
                         <button type="button" onClick={() => showToast('Upload lampiran akan segera hadir. 🚧', 'info')} className="p-1"><span dangerouslySetInnerHTML={{ __html: paperclip }} /></button>
                         <textarea
                             rows={1}
@@ -257,7 +281,7 @@ export default function ProjectView() {
                             className="flex-1 bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none resize-none max-h-32"
                         />
                         <div className="hidden sm:block text-[11px] text-slate-400 shrink-0 font-medium">Shift + Enter untuk baris baru</div>
-                        <button type="submit" className="w-8 h-8 rounded-full bg-[#5B4DF6] hover:bg-[#4E3FE3] text-white flex items-center justify-center shrink-0 shadow-sm transition">
+                        <button type="submit" className="w-8 h-8 rounded-full bg-[#5B4DF6] hover:bg-[#4E3FE3] text-white flex items-center justify-center shrink-0 transition">
                             <span dangerouslySetInnerHTML={{ __html: send }} />
                         </button>
                     </form>

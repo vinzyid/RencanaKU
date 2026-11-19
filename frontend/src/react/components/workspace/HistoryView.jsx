@@ -58,7 +58,7 @@ export default function HistoryView() {
                             <div className="text-[11px] text-slate-400 font-medium mb-1.5 uppercase tracking-wider">
                                 {ev.date.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} • {ev.timeAgo}
                             </div>
-                            <div className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 md:p-5 shadow-sm inline-block w-full sm:w-[400px]">
+                            <div className="bg-white dark:bg-[#121624] border border-slate-200/80 dark:border-slate-800 rounded-lg p-4 md:p-5 inline-block w-full sm:w-[400px]">
                                 <div className="font-bold text-sm text-slate-900 dark:text-white">{ev.title}</div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">{ev.desc}</div>
                                 <button onClick={() => navigate(`/app/projects/${ev.projectId}`)} className="text-xs font-semibold text-[#5B4DF6] mt-3.5 hover:underline flex items-center gap-1">Lihat Proyek →</button>

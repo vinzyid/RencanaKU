@@ -15,6 +15,7 @@ import HistoryView from '../components/workspace/HistoryView.jsx';
 import SettingsView from '../components/workspace/SettingsView.jsx';
 import NotificationsView from '../components/workspace/NotificationsView.jsx';
 import ProjectView from '../components/workspace/ProjectView.jsx';
+import NewChatView from '../components/workspace/NewChatView.jsx';
 import DocumentationView from '../components/workspace/DocumentationView.jsx';
 import AdminLayout from '../components/admin/AdminLayout.jsx';
 import AdminOverview from '../components/admin/AdminOverview.jsx';
@@ -64,6 +65,7 @@ export default function App() {
             >
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<DashboardView />} />
+                <Route path="new" element={<NewChatView />} />
                 <Route path="projects" element={<ProjectsView />} />
                 <Route path="projects/:id" element={<ProjectView />} />
                 <Route path="projects/:id/documentation" element={<DocumentationView />} />

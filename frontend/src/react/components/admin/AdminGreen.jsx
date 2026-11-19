@@ -27,7 +27,7 @@ function MetricCard({ icon, label, value, unit, sub, accent = 'emerald' }) {
     }[accent] || 'bg-emerald-50 text-emerald-600';
 
     return (
-        <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#121624]">
+        <div className="flex items-center gap-4 rounded-lg border border-slate-200/80 bg-white p-5 dark:border-slate-800/80 dark:bg-[#121624]">
             <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tone}`}>
                 <AdminIcon name={icon} className="h-6 w-6" />
             </div>
@@ -89,19 +89,19 @@ export default function AdminGreen() {
             />
 
             {error ? (
-                <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#121624]">
+                <div className="rounded-lg border border-slate-200/80 bg-white dark:border-slate-800/80 dark:bg-[#121624]">
                     <AdminError message={error} onRetry={load} />
                 </div>
             ) : loading ? (
                 <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+                        <div key={i} className="h-24 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
                     ))}
                 </div>
             ) : (
                 <>
                     {/* Banner hijau */}
-                    <div className="overflow-hidden rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 to-teal-50/60 p-6 dark:border-emerald-900/40 dark:from-emerald-950/30 dark:to-teal-950/20">
+                    <div className="overflow-hidden rounded-lg border border-slate-200 border-l-2 border-l-emerald-500 bg-white p-6 dark:border-slate-800 dark:border-l-emerald-500 dark:bg-[#121624]">
                         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-start gap-4">
                                 <LeafMark />
@@ -114,7 +114,7 @@ export default function AdminGreen() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="shrink-0 rounded-2xl border border-emerald-200/70 bg-white/70 px-5 py-4 text-center backdrop-blur dark:border-emerald-900/40 dark:bg-emerald-950/30">
+                            <div className="shrink-0 rounded-lg border border-emerald-200/70 bg-white/70 px-5 py-4 text-center backdrop-blur dark:border-emerald-900/40 dark:bg-emerald-950/30">
                                 <div className="text-[10.5px] font-bold uppercase tracking-wide text-emerald-700/80 dark:text-emerald-300/80">Skor Efisiensi</div>
                                 <div className={`text-3xl font-extrabold font-heading ${scoreTone}`}>{efficiency.score}</div>
                                 <div className="text-[10.5px] text-emerald-700/70 dark:text-emerald-300/60">
@@ -207,7 +207,7 @@ export default function AdminGreen() {
                     </div>
 
                     {/* Catatan koefisien */}
-                    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/60 p-4 dark:border-slate-800/80 dark:bg-slate-800/30">
+                    <div className="rounded-lg border border-slate-200/80 bg-slate-50/60 p-4 dark:border-slate-800/80 dark:bg-slate-800/30">
                         <div className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
                             <span className="font-bold text-slate-600 dark:text-slate-300">Metodologi (estimasi):</span>{' '}
                             Energi {coeff.kwh_per_1k_tokens} kWh/1.000 token · Intensitas karbon {coeff.co2_kg_per_kwh} kg CO₂e/kWh ·
