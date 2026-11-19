@@ -1,0 +1,40 @@
+# Caddy site RencanaKU — reverse proxy + HTTPS otomatis.
+#
+# Berkas ini TIDAK menimpa /etc/caddy/Caddyfile yang sudah ada. setup-vps.sh
+# menyalinnya ke /etc/caddy/sites/rencanaku.caddy dan memastikan Caddyfile utama
+# punya baris  import /etc/caddy/sites/*.caddy  (sudah ada kalau VinzyPlay
+# terpasang), jadi LexiScan & VinzyPlay tetap berjalan.
+#
+# DOMAIN_RENCANAKU diganti otomatis oleh setup-vps.sh.
+
+DOMAIN_RENCANAKU {
+	reverse_proxy 127.0.0.1:8082 {
+		header_up X-Real-IP {remote_host}
+	}
+
+	request_body {
+		max_size 8MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+		-X-Powered-By
+	}
+
+	encode gzip zstd
+
+	log {
+		output file /var/log/caddy/rencanaku.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}
+
+# www diarahkan ke domain utama supaya login & token selalu di satu alamat.
+www.DOMAIN_RENCANAKU {
+	redir https://DOMAIN_RENCANAKU{uri} permanent
+}

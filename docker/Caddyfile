@@ -1,0 +1,41 @@
+# Caddyfile INTERNAL container (FrankenPHP), bukan Caddy di host.
+#
+# Satu port melayani dua hal:
+#   /api/*, /oauth/*, /sanctum/*, /up  -> Laravel (backend/public/index.php)
+#   selain itu                          -> SPA React (/app/spa), fallback ke index.html
+#
+# HTTPS ditangani Caddy di host (deploy/Caddyfile), jadi di sini HTTP biasa.
+
+{
+	frankenphp
+	admin off
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:{$PORT:8080} {
+	encode zstd gzip
+	root * /app/public
+
+	@laravel path /api/* /oauth/* /sanctum/* /up
+	handle @laravel {
+		php_server
+	}
+
+	# Berkas hasil build Vite memakai hash di namanya, jadi aman di-cache lama.
+	handle /assets/* {
+		root * /app/spa
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Rute React (/app/dashboard, /admin/overview, ...) jatuh ke index.html.
+	handle {
+		root * /app/spa
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

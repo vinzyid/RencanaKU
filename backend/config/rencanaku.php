@@ -50,6 +50,9 @@ return [
 
     'timeout' => (int) env('AI_REQUEST_TIMEOUT', 30),
 
+    // Batas token keluaran AI (naikkan bila PRD panjang terpotong).
+    'max_tokens' => (int) env('AI_MAX_TOKENS', 4096),
+
     /*
     |--------------------------------------------------------------------------
     | Admin Emails

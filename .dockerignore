@@ -1,0 +1,43 @@
+# Dipasang ulang di dalam image.
+**/node_modules/
+**/vendor/
+frontend/dist/
+backend/public/hot
+
+# Kredensial — diisi lewat .env.production saat runtime, bukan ditanam ke image.
+**/.env
+**/.env.*
+!**/.env.example
+
+.git/
+.github/
+.idea/
+.vscode/
+**/.DS_Store
+
+# Data runtime Laravel (dibuat ulang di Dockerfile, disimpan di volume).
+backend/storage/
+backend/bootstrap/cache/*.php
+backend/tests/
+backend/.phpunit.result.cache
+backend/phpunit.xml
+
+# Khusus Apache; FrankenPHP tidak memakainya.
+backend/public/.htaccess
+
+# Alat backup lokal & dokumen.
+backend/backup-db.*
+backend/restore-db.php
+backend/BACKUP.md
+JOB2/
+Laporan/
+security-and-issues-reports/
+storage/
+*.md
+
+# Berkas deploy tidak perlu ada di dalam image.
+Dockerfile
+.dockerignore
+docker-compose.yml
+deploy/
+deploy.sh

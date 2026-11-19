@@ -14,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Di produksi request datang lewat Caddy (reverse proxy) ke container
+        // yang hanya mendengarkan 127.0.0.1, jadi header X-Forwarded-* aman
+        // dipercaya. Tanpa ini Laravel mengira request-nya http://.
+        $middleware->trustProxies(at: '*');
+
         $middleware->api(prepend: [
             EnsureFrontendRequestsAreStateful::class,
         ]);

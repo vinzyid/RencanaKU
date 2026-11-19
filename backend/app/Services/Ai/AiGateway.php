@@ -140,7 +140,7 @@ class AiGateway
                 // Batas token keluaran. Tanpa ini, sebagian gateway memakai
                 // default kecil sehingga JSON PRD terpotong di tengah dan
                 // dianggap tidak valid.
-                'max_tokens' => (int) env('AI_MAX_TOKENS', 4096),
+                'max_tokens' => (int) config('rencanaku.max_tokens', 4096),
             ]);
 
         $response->throw();
